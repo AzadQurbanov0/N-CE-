@@ -73,48 +73,43 @@ body{
   cursor:pointer;
   font-weight:600;
 }
-/* ✅ YENİ: ÇEK butonu (payBtn-in altında) */
-#cekBtn{
-  position:fixed;
-  top:64px;       /* payBtn-dən bir az aşağı */
-  right:20px;
-  padding:10px 20px;
-  font-size:1rem;
-  background:#2563eb;
-  color:white;
-  border:none;
+#cekContainer{
+  margin-top:15px;
+}
+#uploadCekBtn{
+  padding:8px 16px;
   border-radius:8px;
+  border:none;
   cursor:pointer;
+  background:#3b82f6;
+  color:white;
   font-weight:600;
 }
-#uploadInput{display:none;}
 </style>
 </head>
 <body>
 <div class="wrap">
-<div id="userInfo" class="user-info"></div>
-<div class="card">
-  <div class="glow"></div>
-  <div class="bag">💰</div>
-  <div class="balance"><span class="symbol">AZN</span><span id="balance" class="value">0.00</span></div>
-</div>
-<button class="google-btn" id="loginBtn"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="G"> Google ilə Giriş</button>
+  <div id="userInfo" class="user-info"></div>
+  <div class="card">
+    <div class="glow"></div>
+    <div class="bag">💰</div>
+    <div class="balance"><span class="symbol">AZN</span><span id="balance" class="value">0.00</span></div>
+  </div>
+  <button class="google-btn" id="loginBtn"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="G"> Google ilə Giriş</button>
+  <div id="cekContainer">
+    <input type="file" id="cekInput" />
+    <button id="uploadCekBtn">ÇEK YÜKLƏ</button>
+  </div>
 </div>
 
 <div id="confettiContainer"></div>
 <button id="payBtn">💲 PUL YÜKLƏ</button>
 
-<!-- ✅ YENİ: ÇEK butonu və gizli input -->
-<button id="cekBtn">📷 ÇEK</button>
-<input id="uploadInput" type="file" accept="image/*" capture="environment">
-
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
-<!-- ✅ YENİ: Storage üçün SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
-
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw",
@@ -131,7 +126,6 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 const storage = firebase.storage();
-
 let oldBalance = 0;
 
 // Google ilə daxil ol
@@ -141,7 +135,6 @@ function openLoginModal() {
       .then(result => saveUser(result.user))
       .catch(error => showPopup(error.message, true));
 }
-
 document.getElementById('loginBtn').addEventListener('click', openLoginModal);
 
 // Konfetti effekti - 5 saniyəlik yağış
@@ -198,59 +191,46 @@ document.getElementById('payBtn').addEventListener('click', ()=>{
   alert('M10 077 543 50 53 ÖDƏNİŞ ET');
 });
 
+// ÇEK yükləmə funksiyası
+const cekInput = document.getElementById('cekInput');
+const uploadBtn = document.getElementById('uploadCekBtn');
+
+uploadBtn.addEventListener('click', async () => {
+  const file = cekInput.files[0];
+  if(!file) return alert("Şəkil seçin");
+
+  const user = firebase.auth().currentUser;
+  if(!user) return alert("İlk öncə Google ilə daxil olun");
+
+  const timestamp = Date.now();
+  const storageRef = storage.ref(`photos/${user.uid}/${timestamp}_${file.name}`);
+
+  const uploadTask = storageRef.put(file);
+
+  uploadTask.on('state_changed',
+    null,
+    (err)=>alert("Yükləmə xətası: "+err.message),
+    async ()=>{
+      const url = await uploadTask.snapshot.ref.getDownloadURL();
+
+      const photoRef = db.ref('photos');
+      photoRef.push({
+        uid: user.uid,
+        name: user.displayName,
+        email: user.email,
+        url: url,
+        storagePath: `photos/${user.uid}/${timestamp}_${file.name}`,
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+      });
+
+      alert("Çek uğurla yükləndi!");
+    }
+  );
+});
+
 function showPopup(msg,isError){
   alert(msg);
 }
-
-/* ✅ YENİ: ÇEK yükləmə axını
-   1) ÇEK butonuna klik -> fayl seçimi
-   2) Şəkil Storage-a yüklənir
-   3) Link Realtime Database-də receipts/ altında saxlanır
-*/
-const cekBtn = document.getElementById('cekBtn');
-const uploadInput = document.getElementById('uploadInput');
-
-cekBtn.addEventListener('click', ()=>{
-  uploadInput.click();
-});
-
-uploadInput.addEventListener('change', async (e)=>{
-  const file = e.target.files && e.target.files[0];
-  if(!file){ return; }
-
-  const user = auth.currentUser;
-  if(!user){
-    alert('Şəkil göndərmək üçün əvvəlcə Google ilə daxil olun.');
-    uploadInput.value = '';
-    return;
-  }
-
-  try{
-    const ts = Date.now();
-    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-    const path = `receipts/${user.uid}/${ts}.${ext}`;
-
-    // Storage-a yüklə
-    const snap = await storage.ref(path).put(file);
-    const url = await snap.ref.getDownloadURL();
-
-    // Realtime DB-yə qeyd et (admin paneli buradan oxuyacaq)
-    await db.ref('receipts').push({
-      uid: user.uid,
-      name: user.displayName || '',
-      email: user.email || '',
-      url,
-      createdAt: firebase.database.ServerValue.TIMESTAMP
-    });
-
-    alert('Şəkil uğurla göndərildi. ✅');
-  }catch(err){
-    console.error(err);
-    alert('Yükləmə zamanı xəta baş verdi: ' + err.message);
-  }finally{
-    uploadInput.value = '';
-  }
-});
 </script>
 </body>
 </html>
