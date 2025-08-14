@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>İstifadəçi Paneli</title>
+<title>Para Çuvalı və Google Giriş</title>
 <style>
 :root{
   --bg1:#0f0c29;
@@ -12,19 +12,19 @@
   --card:rgba(255,255,255,0.06);
   --glass:rgba(255,255,255,0.12);
   --text:#f8fafc;
+  --accent:#22c55e;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
 body{
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,'Helvetica Neue',Arial;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,'Helvetica Neue',Arial,'Apple Color Emoji','Segoe UI Emoji';
   color:var(--text);
-  background:linear-gradient(135deg,var(--bg1),var(--bg2),var(--bg3));
-  display:flex;
-  justify-content:center;
-  align-items:flex-start;
-  flex-direction:column;
-  padding:20px;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2) 50%,var(--bg3));
+  display:grid;
+  place-items:center;
+  overflow:hidden;
 }
+.wrap{display:grid;place-items:center;gap:12px;text-align:center;padding:20px;}
 .user-info{font-size:1rem;font-weight:600;opacity:.9;margin-bottom:6px;}
 .card{
   position:relative;
@@ -37,9 +37,8 @@ body{
   border-radius:24px;
   box-shadow:0 15px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
   backdrop-filter:blur(6px);
-  margin-top:20px;
 }
-.bag{font-size:clamp(5rem,18vw,12rem);filter:drop-shadow(0 8px 15px rgba(0,0,0,0.35));user-select:none;}
+.bag{font-size:clamp(5rem,18vw,12rem);filter:drop-shadow(0 8px 15px rgba(0,0,0,0.35));user-select:none;animation:float 5s ease-in-out infinite;}
 .balance{margin-top:10px;display:grid;place-items:center;font-weight:700;letter-spacing:1px;text-shadow:0 2px 5px rgba(0,0,0,0.5);}
 .balance .symbol{font-size:clamp(1rem,2.5vw,1.5rem);opacity:.9;margin-right:4px;}
 .balance .value{font-size:clamp(1.5rem,5vw,2.5rem);line-height:1;}
@@ -58,54 +57,42 @@ body{
   font-weight:600;
 }
 .google-btn img{width:18px;height:18px;}
-#lineBtn{
+.glow{position:absolute;inset:-30%;pointer-events:none;background:radial-gradient(40% 35% at 50% 10%, rgba(34,197,94,.25), transparent 60%),radial-gradient(30% 30% at 80% 70%, rgba(99,102,241,.18), transparent 60%);filter:blur(30px);}
+#confettiContainer{position:fixed;top:0;left:0;width:100%;height:0;pointer-events:none;overflow:visible;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+#payBtn{
   position:fixed;
   top:20px;
   right:20px;
-  padding:12px 25px;
-  font-size:1.2rem;
-  background:#1f7a3f;
+  padding:10px 20px;
+  font-size:1rem;
+  background:#22c55e;
   color:white;
   border:none;
-  border-radius:10px;
+  border-radius:8px;
   cursor:pointer;
   font-weight:600;
-}
-#paymentText{
-  margin-top:20px;
-  color:white;
-  font-size:1.5rem;
-  font-weight:600;
-  text-align:center;
-  white-space: pre;
-  line-height:1.4;
 }
 </style>
 </head>
 <body>
-
+<div class="wrap">
 <div id="userInfo" class="user-info"></div>
-
 <div class="card">
+  <div class="glow"></div>
   <div class="bag">💰</div>
   <div class="balance"><span class="symbol">AZN</span><span id="balance" class="value">0.00</span></div>
 </div>
-
 <button class="google-btn" id="loginBtn"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="G"> Google ilə Giriş</button>
-
-<!-- PUL YÜKLƏ -->
-<button id="lineBtn">💲 PUL YÜKLƏ</button>
-<div id="paymentText">
-  M10 077 543 50 53
-  ÖDƏNİŞ ET
-  ÇEKİ GÖNDƏR
 </div>
+
+<div id="confettiContainer"></div>
+<button id="payBtn">💲 PUL YÜKLƏ</button>
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
-
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw",
@@ -121,24 +108,57 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
+let oldBalance = 0;
 
 // Google ilə daxil ol
 function openLoginModal() {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider)
       .then(result => saveUser(result.user))
-      .catch(error => alert(error.message));
+      .catch(error => showPopup(error.message, true));
 }
 
 document.getElementById('loginBtn').addEventListener('click', openLoginModal);
 
+// Konfetti effekti - 5 saniyəlik yağış
+function launchConfetti(){
+  const container = document.getElementById('confettiContainer');
+  const count = 50;
+  for(let i=0;i<count;i++){
+    const confetti = document.createElement('div');
+    confetti.textContent = '🎊';
+    confetti.style.position = 'absolute';
+    confetti.style.fontSize = Math.random()*24+16+'px';
+    confetti.style.left = Math.random()*100+'%';
+    confetti.style.top = '-5%';
+    confetti.style.opacity = Math.random();
+    confetti.style.transition = 'transform 5s linear, opacity 5s';
+    container.appendChild(confetti);
+
+    const delay = Math.random()*1000;
+    setTimeout(()=>{
+      confetti.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;
+      confetti.style.opacity = 0;
+    }, delay);
+
+    setTimeout(()=>container.removeChild(confetti), 5100);
+  }
+}
+
 // İstifadəçini yadda saxlamaq və balansı göstərmək
 function saveUser(user){
-  document.getElementById('userInfo').textContent = `Salam, ${user.displayName} (${user.email})`;
+  const userInfo = document.getElementById('userInfo');
+  userInfo.textContent = `Salam, ${user.displayName} (${user.email})`;
+
   const userBalanceRef = db.ref('balances/' + user.uid);
   userBalanceRef.on('value', (snapshot) => {
     const balance = snapshot.val() || 0;
     document.getElementById('balance').textContent = parseFloat(balance).toFixed(2);
+
+    if(balance > oldBalance){
+      launchConfetti();
+    }
+    oldBalance = balance;
   });
 }
 
@@ -149,10 +169,14 @@ auth.onAuthStateChanged((user) => {
   }
 });
 
-// PUL YÜKLƏ button sadəcə göstərir
-document.getElementById('lineBtn').addEventListener('click', ()=>{
-  alert('M10 077 543 50 53\nÖDƏNİŞ ET\nÇEKİ GÖNDƏR');
+// Pul yüklə button funksiyası
+document.getElementById('payBtn').addEventListener('click', ()=>{
+  alert('M10 077 543 50 53 ÖDƏNİŞ ET');
 });
+
+function showPopup(msg,isError){
+  alert(msg);
+}
 </script>
 </body>
 </html>
