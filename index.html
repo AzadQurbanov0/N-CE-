@@ -75,6 +75,7 @@ body{
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw",
@@ -89,8 +90,8 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+const db = firebase.database();
 
-// Google ilə daxil ol
 function openLoginModal() {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider)
@@ -105,14 +106,18 @@ document.getElementById('loginBtn').addEventListener('click', openLoginModal);
 function saveUser(user){
   const userInfo = document.getElementById('userInfo');
   userInfo.textContent = `Salam, ${user.displayName} (${user.email})`;
-  // Balansı burada göstərə bilərsən, hal-hazırda 0.00 qalır
+
+  // Balansı real vaxtda göstərmək
+  const userBalanceRef = db.ref('balances/' + user.uid);
+  userBalanceRef.on('value', (snapshot) => {
+    const balance = snapshot.val() || 0;
+    document.getElementById('balance').textContent = parseFloat(balance).toFixed(2);
+  });
 }
 
 function showPopup(msg,isError){
   alert(msg);
 }
-
-window.setBalance=function(val){document.getElementById('balance').textContent=String(val);}
 </script>
 </body>
 </html>
