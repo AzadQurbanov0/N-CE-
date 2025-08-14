@@ -92,28 +92,34 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
+// Google ilə daxil ol
 function openLoginModal() {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider)
-      .then(result => {
-          saveUser(result.user);
-      })
+      .then(result => saveUser(result.user))
       .catch(error => showPopup(error.message, true));
 }
 
 document.getElementById('loginBtn').addEventListener('click', openLoginModal);
 
+// İstifadəçini yadda saxlamaq və balansı göstərmək
 function saveUser(user){
   const userInfo = document.getElementById('userInfo');
   userInfo.textContent = `Salam, ${user.displayName} (${user.email})`;
 
-  // Balansı real vaxtda göstərmək
   const userBalanceRef = db.ref('balances/' + user.uid);
   userBalanceRef.on('value', (snapshot) => {
     const balance = snapshot.val() || 0;
     document.getElementById('balance').textContent = parseFloat(balance).toFixed(2);
   });
 }
+
+// Auto login: səhifə yüklənəndə istifadəçi varsa balans və ad göstər
+auth.onAuthStateChanged((user) => {
+  if(user){
+    saveUser(user);
+  }
+});
 
 function showPopup(msg,isError){
   alert(msg);
