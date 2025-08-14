@@ -106,24 +106,28 @@ function openLoginModal() {
 
 document.getElementById('loginBtn').addEventListener('click', openLoginModal);
 
-// Konfetti effekti
+// Konfetti effekti - 5 saniyəlik yağış
 function launchConfetti(){
   const container = document.getElementById('confettiContainer');
-  for(let i=0;i<30;i++){
+  const count = 50;
+  for(let i=0;i<count;i++){
     const confetti = document.createElement('div');
     confetti.textContent = '🎊';
     confetti.style.position = 'absolute';
     confetti.style.fontSize = Math.random()*24+16+'px';
     confetti.style.left = Math.random()*100+'%';
-    confetti.style.top = '-2%';
+    confetti.style.top = '-5%';
     confetti.style.opacity = Math.random();
-    confetti.style.transition = 'transform 3s linear, opacity 3s';
+    confetti.style.transition = 'transform 5s linear, opacity 5s';
     container.appendChild(confetti);
+
+    const delay = Math.random()*1000;
     setTimeout(()=>{
-      confetti.style.transform = `translateY(${window.innerHeight+50}px) rotate(${Math.random()*360}deg)`;
+      confetti.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;
       confetti.style.opacity = 0;
-    },50);
-    setTimeout(()=>container.removeChild(confetti),3100);
+    }, delay);
+
+    setTimeout(()=>container.removeChild(confetti), 5100);
   }
 }
 
