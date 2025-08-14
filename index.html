@@ -60,6 +60,19 @@ body{
 .glow{position:absolute;inset:-30%;pointer-events:none;background:radial-gradient(40% 35% at 50% 10%, rgba(34,197,94,.25), transparent 60%),radial-gradient(30% 30% at 80% 70%, rgba(99,102,241,.18), transparent 60%);filter:blur(30px);}
 #confettiContainer{position:fixed;top:0;left:0;width:100%;height:0;pointer-events:none;overflow:visible;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+#payBtn{
+  position:fixed;
+  top:20px;
+  right:20px;
+  padding:10px 20px;
+  font-size:1rem;
+  background:#22c55e;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
 </style>
 </head>
 <body>
@@ -74,6 +87,7 @@ body{
 </div>
 
 <div id="confettiContainer"></div>
+<button id="payBtn">💲 PUL YÜKLƏ</button>
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
@@ -153,6 +167,11 @@ auth.onAuthStateChanged((user) => {
   if(user){
     saveUser(user);
   }
+});
+
+// Pul yüklə button funksiyası
+document.getElementById('payBtn').addEventListener('click', ()=>{
+  alert('M10 077 543 50 53 ÖDƏNİŞ ET');
 });
 
 function showPopup(msg,isError){
