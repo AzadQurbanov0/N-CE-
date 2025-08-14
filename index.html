@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+      <!DOCTYPE html>
 <html lang="az">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Para Çuvalı və Google Giriş</title>
+<title>İstifadəçi Paneli</title>
 <style>
 :root{
   --bg1:#0f0c29;
@@ -14,18 +14,25 @@
   --text:#f8fafc;
   --accent:#22c55e;
 }
-*{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;}
 body{
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,'Helvetica Neue',Arial,'Apple Color Emoji','Segoe UI Emoji';
+  font-family:system-ui,Segoe UI,Roboto;
   color:var(--text);
   background:linear-gradient(135deg,var(--bg1),var(--bg2) 50%,var(--bg3));
   display:grid;
   place-items:center;
-  overflow:hidden;
+  height:100vh;
+  margin:0;
 }
-.wrap{display:grid;place-items:center;gap:12px;text-align:center;padding:20px;}
-.user-info{font-size:1rem;font-weight:600;opacity:.9;margin-bottom:6px;}
+.wrap{
+  text-align:center;
+  display:grid;
+  place-items:center;
+  gap:12px;
+  padding:20px;
+}
+.user-info{
+  font-size:1rem;font-weight:600;opacity:.9;margin-bottom:6px;
+}
 .card{
   position:relative;
   width:min(60vw,320px);
@@ -60,56 +67,39 @@ body{
 .glow{position:absolute;inset:-30%;pointer-events:none;background:radial-gradient(40% 35% at 50% 10%, rgba(34,197,94,.25), transparent 60%),radial-gradient(30% 30% at 80% 70%, rgba(99,102,241,.18), transparent 60%);filter:blur(30px);}
 #confettiContainer{position:fixed;top:0;left:0;width:100%;height:0;pointer-events:none;overflow:visible;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
-#payBtn{
+#payBtn, #cekBtn{
   position:fixed;
   top:20px;
   right:20px;
   padding:10px 20px;
   font-size:1rem;
-  background:#22c55e;
-  color:white;
   border:none;
   border-radius:8px;
   cursor:pointer;
   font-weight:600;
 }
-#cekContainer{
-  margin-top:15px;
-}
-#uploadCekBtn{
-  padding:8px 16px;
-  border-radius:8px;
-  border:none;
-  cursor:pointer;
-  background:#3b82f6;
-  color:white;
-  font-weight:600;
-}
+#payBtn{background:#22c55e;color:white;}
+#cekBtn{background:#3b82f6;color:white; margin-top:60px;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div id="userInfo" class="user-info"></div>
-  <div class="card">
-    <div class="glow"></div>
-    <div class="bag">💰</div>
-    <div class="balance"><span class="symbol">AZN</span><span id="balance" class="value">0.00</span></div>
-  </div>
-  <button class="google-btn" id="loginBtn"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="G"> Google ilə Giriş</button>
-  <div id="cekContainer">
-    <input type="file" id="cekInput" />
-    <button id="uploadCekBtn">ÇEK YÜKLƏ</button>
-  </div>
+<div id="userInfo" class="user-info"></div>
+<div class="card">
+  <div class="glow"></div>
+  <div class="bag">💰</div>
+  <div class="balance"><span class="symbol">AZN</span><span id="balance" class="value">0.00</span></div>
+</div>
+<button class="google-btn" id="loginBtn"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="G"> Google ilə Giriş</button>
 </div>
 
 <div id="confettiContainer"></div>
 <button id="payBtn">💲 PUL YÜKLƏ</button>
+<button id="cekBtn">📷 ÇEK</button>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw",
@@ -125,7 +115,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
-const storage = firebase.storage();
 let oldBalance = 0;
 
 // Google ilə daxil ol
@@ -133,11 +122,11 @@ function openLoginModal() {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider)
       .then(result => saveUser(result.user))
-      .catch(error => showPopup(error.message, true));
+      .catch(error => alert(error.message));
 }
 document.getElementById('loginBtn').addEventListener('click', openLoginModal);
 
-// Konfetti effekti - 5 saniyəlik yağış
+// Konfetti effekti
 function launchConfetti(){
   const container = document.getElementById('confettiContainer');
   const count = 50;
@@ -167,6 +156,8 @@ function saveUser(user){
   const userInfo = document.getElementById('userInfo');
   userInfo.textContent = `Salam, ${user.displayName} (${user.email})`;
 
+  db.ref('users/'+user.uid).set({name:user.displayName,email:user.email});
+
   const userBalanceRef = db.ref('balances/' + user.uid);
   userBalanceRef.on('value', (snapshot) => {
     const balance = snapshot.val() || 0;
@@ -186,51 +177,24 @@ auth.onAuthStateChanged((user) => {
   }
 });
 
-// Pul yüklə button funksiyası
+// Pul yüklə button
 document.getElementById('payBtn').addEventListener('click', ()=>{
   alert('M10 077 543 50 53 ÖDƏNİŞ ET');
 });
 
-// ÇEK yükləmə funksiyası
-const cekInput = document.getElementById('cekInput');
-const uploadBtn = document.getElementById('uploadCekBtn');
-
-uploadBtn.addEventListener('click', async () => {
-  const file = cekInput.files[0];
-  if(!file) return alert("Şəkil seçin");
-
-  const user = firebase.auth().currentUser;
-  if(!user) return alert("İlk öncə Google ilə daxil olun");
-
-  const timestamp = Date.now();
-  const storageRef = storage.ref(`photos/${user.uid}/${timestamp}_${file.name}`);
-
-  const uploadTask = storageRef.put(file);
-
-  uploadTask.on('state_changed',
-    null,
-    (err)=>alert("Yükləmə xətası: "+err.message),
-    async ()=>{
-      const url = await uploadTask.snapshot.ref.getDownloadURL();
-
-      const photoRef = db.ref('photos');
-      photoRef.push({
-        uid: user.uid,
-        name: user.displayName,
-        email: user.email,
-        url: url,
-        storagePath: `photos/${user.uid}/${timestamp}_${file.name}`,
-        createdAt: firebase.database.ServerValue.TIMESTAMP
-      });
-
-      alert("Çek uğurla yükləndi!");
-    }
-  );
+// ÇEK button
+document.getElementById('cekBtn').addEventListener('click', ()=>{
+  const user = auth.currentUser;
+  if(!user) return alert("Əvvəl Google ilə daxil olun!");
+  const cekRef = db.ref('cekler').push();
+  cekRef.set({
+    uid:user.uid,
+    name:user.displayName,
+    email:user.email,
+    time:Date.now()
+  });
+  alert('ÇEK göndərildi admin panelinə!');
 });
-
-function showPopup(msg,isError){
-  alert(msg);
-}
 </script>
 </body>
 </html>
