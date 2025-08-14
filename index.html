@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>İstifadəçi Paneli - 💲 PUL YÜKLƏ</title>
+<title>İstifadəçi Paneli</title>
 <style>
 :root{
   --bg1:#0f0c29;
@@ -12,7 +12,6 @@
   --card:rgba(255,255,255,0.06);
   --glass:rgba(255,255,255,0.12);
   --text:#f8fafc;
-  --accent:#22c55e;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
@@ -40,7 +39,7 @@ body{
   backdrop-filter:blur(6px);
   margin-top:20px;
 }
-.bag{font-size:clamp(5rem,18vw,12rem);filter:drop-shadow(0 8px 15px rgba(0,0,0,0.35));user-select:none;animation:float 5s ease-in-out infinite;}
+.bag{font-size:clamp(5rem,18vw,12rem);filter:drop-shadow(0 8px 15px rgba(0,0,0,0.35));user-select:none;}
 .balance{margin-top:10px;display:grid;place-items:center;font-weight:700;letter-spacing:1px;text-shadow:0 2px 5px rgba(0,0,0,0.5);}
 .balance .symbol{font-size:clamp(1rem,2.5vw,1.5rem);opacity:.9;margin-right:4px;}
 .balance .value{font-size:clamp(1.5rem,5vw,2.5rem);line-height:1;}
@@ -81,28 +80,6 @@ body{
   white-space: pre;
   line-height:1.4;
 }
-.line{
-  opacity:0;
-  transition: opacity 1s ease;
-}
-.line.show{
-  opacity:1;
-}
-.glow{position:absolute;inset:-30%;pointer-events:none;background:radial-gradient(40% 35% at 50% 10%, rgba(34,197,94,.25), transparent 60%),radial-gradient(30% 30% at 80% 70%, rgba(99,102,241,.18), transparent 60%);filter:blur(30px);}
-@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
-/* 🎊 animasiya */
-.confetti {
-  position: fixed;
-  width: 10px;
-  height: 10px;
-  background: #FFD700;
-  top: -10px;
-  animation: fall 3s linear forwards;
-  z-index:9999;
-}
-@keyframes fall {
-  to { transform: translateY(100vh) rotate(360deg); opacity:0; }
-}
 </style>
 </head>
 <body>
@@ -110,7 +87,6 @@ body{
 <div id="userInfo" class="user-info"></div>
 
 <div class="card">
-  <div class="glow"></div>
   <div class="bag">💰</div>
   <div class="balance"><span class="symbol">AZN</span><span id="balance" class="value">0.00</span></div>
 </div>
@@ -120,9 +96,9 @@ body{
 <!-- PUL YÜKLƏ -->
 <button id="lineBtn">💲 PUL YÜKLƏ</button>
 <div id="paymentText">
-  <div class="line" id="line1">M10 077 543 50 53</div>
-  <div class="line" id="line2">     ÖDƏNİŞ ET</div>
-  <div class="line" id="line3">   ÇEKİ GÖNDƏR</div>
+  M10 077 543 50 53
+  ÖDƏNİŞ ET
+  ÇEKİ GÖNDƏR
 </div>
 
 <!-- Firebase SDK -->
@@ -131,7 +107,6 @@ body{
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
 
 <script>
-// Firebase konfiqurasiya
 const firebaseConfig = {
   apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw",
   authDomain: "niceuc-e5986.firebaseapp.com",
@@ -152,22 +127,18 @@ function openLoginModal() {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider)
       .then(result => saveUser(result.user))
-      .catch(error => showPopup(error.message, true));
+      .catch(error => alert(error.message));
 }
 
 document.getElementById('loginBtn').addEventListener('click', openLoginModal);
 
 // İstifadəçini yadda saxlamaq və balansı göstərmək
 function saveUser(user){
-  const userInfo = document.getElementById('userInfo');
-  userInfo.textContent = `Salam, ${user.displayName} (${user.email})`;
-
+  document.getElementById('userInfo').textContent = `Salam, ${user.displayName} (${user.email})`;
   const userBalanceRef = db.ref('balances/' + user.uid);
   userBalanceRef.on('value', (snapshot) => {
     const balance = snapshot.val() || 0;
     document.getElementById('balance').textContent = parseFloat(balance).toFixed(2);
-    // 🎊 animasiya hər balans yenilənəndə
-    createConfetti();
   });
 }
 
@@ -178,35 +149,10 @@ auth.onAuthStateChanged((user) => {
   }
 });
 
-function showPopup(msg,isError){
-  alert(msg);
-}
-
-// PUL YÜKLƏ button animasiya
-const lines = [
-  document.getElementById('line1'),
-  document.getElementById('line2'),
-  document.getElementById('line3')
-];
-
+// PUL YÜKLƏ button sadəcə göstərir
 document.getElementById('lineBtn').addEventListener('click', ()=>{
-  lines.forEach((line, index)=>{
-    setTimeout(()=>line.classList.add('show'), index*500);
-  });
+  alert('M10 077 543 50 53\nÖDƏNİŞ ET\nÇEKİ GÖNDƏR');
 });
-
-// 🎊 Confetti yarat
-function createConfetti(){
-  for(let i=0;i<30;i++){
-    const conf = document.createElement('div');
-    conf.className = 'confetti';
-    conf.style.left = Math.random()*100 + 'vw';
-    conf.style.background = `hsl(${Math.random()*360}, 100%, 50%)`;
-    conf.style.width = conf.style.height = (5+Math.random()*10)+'px';
-    document.body.appendChild(conf);
-    setTimeout(()=>conf.remove(),3000);
-  }
-}
 </script>
 </body>
 </html>
