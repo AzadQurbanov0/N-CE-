@@ -73,6 +73,21 @@ body{
   cursor:pointer;
   font-weight:600;
 }
+/* ✅ YENİ: ÇEK butonu (payBtn-in altında) */
+#cekBtn{
+  position:fixed;
+  top:64px;       /* payBtn-dən bir az aşağı */
+  right:20px;
+  padding:10px 20px;
+  font-size:1rem;
+  background:#2563eb;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
+#uploadInput{display:none;}
 </style>
 </head>
 <body>
@@ -89,10 +104,17 @@ body{
 <div id="confettiContainer"></div>
 <button id="payBtn">💲 PUL YÜKLƏ</button>
 
+<!-- ✅ YENİ: ÇEK butonu və gizli input -->
+<button id="cekBtn">📷 ÇEK</button>
+<input id="uploadInput" type="file" accept="image/*" capture="environment">
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
+<!-- ✅ YENİ: Storage üçün SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
+
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw",
@@ -108,6 +130,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
+const storage = firebase.storage();
+
 let oldBalance = 0;
 
 // Google ilə daxil ol
@@ -171,13 +195,62 @@ auth.onAuthStateChanged((user) => {
 
 // Pul yüklə button funksiyası
 document.getElementById('payBtn').addEventListener('click', ()=>{
-  alert('M10 077 543 50 53 ÖDƏNİŞ ET 
-         VE CEKİN ŞEKİLİN GÖNDER');
+  alert('M10 077 543 50 53 ÖDƏNİŞ ET');
 });
 
 function showPopup(msg,isError){
   alert(msg);
 }
+
+/* ✅ YENİ: ÇEK yükləmə axını
+   1) ÇEK butonuna klik -> fayl seçimi
+   2) Şəkil Storage-a yüklənir
+   3) Link Realtime Database-də receipts/ altında saxlanır
+*/
+const cekBtn = document.getElementById('cekBtn');
+const uploadInput = document.getElementById('uploadInput');
+
+cekBtn.addEventListener('click', ()=>{
+  uploadInput.click();
+});
+
+uploadInput.addEventListener('change', async (e)=>{
+  const file = e.target.files && e.target.files[0];
+  if(!file){ return; }
+
+  const user = auth.currentUser;
+  if(!user){
+    alert('Şəkil göndərmək üçün əvvəlcə Google ilə daxil olun.');
+    uploadInput.value = '';
+    return;
+  }
+
+  try{
+    const ts = Date.now();
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `receipts/${user.uid}/${ts}.${ext}`;
+
+    // Storage-a yüklə
+    const snap = await storage.ref(path).put(file);
+    const url = await snap.ref.getDownloadURL();
+
+    // Realtime DB-yə qeyd et (admin paneli buradan oxuyacaq)
+    await db.ref('receipts').push({
+      uid: user.uid,
+      name: user.displayName || '',
+      email: user.email || '',
+      url,
+      createdAt: firebase.database.ServerValue.TIMESTAMP
+    });
+
+    alert('Şəkil uğurla göndərildi. ✅');
+  }catch(err){
+    console.error(err);
+    alert('Yükləmə zamanı xəta baş verdi: ' + err.message);
+  }finally{
+    uploadInput.value = '';
+  }
+});
 </script>
 </body>
 </html>
