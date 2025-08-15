@@ -90,7 +90,42 @@ font-weight:600;
 }
 #uploadInput{display:none;}
 
-/* 💲 PUL YÜKLƏ modal */
+  <!-- 🏦 PULU ÇEK modal -->
+<div class="cekModalOverlay" id="cekModal">
+  <div class="cekModalContent">
+    <p>Adınızı, Soyadınızı və Kartın son 8 rəqəmini daxil edin:</p>
+    <input type="text" id="fullName" placeholder="Ad Soyad" style="padding:8px 10px; width:80%; margin-top:10px; border-radius:6px; border:none;">
+    <input type="text" id="cardLast8" placeholder="Kartın son 8 rəqəmi" maxlength="8" style="padding:8px 10px; width:80%; margin-top:10px; border-radius:6px; border:none;">
+    <button id="sendCekBtn">GÖNDER</button>
+    <button id="closeCekModal">Bağla</button>
+  </div>
+</div>
+
+<script>
+const cekBtn = document.getElementById('cekBtn'); // Mövcud "🏦 PULU ÇEK" butonu
+const cekModal = document.getElementById('cekModal');
+const closeCekModal = document.getElementById('closeCekModal');
+const sendCekBtn = document.getElementById('sendCekBtn');
+
+cekBtn.addEventListener('click',()=>{ cekModal.style.display='flex'; });
+closeCekModal.addEventListener('click',()=>{ cekModal.style.display='none'; });
+
+sendCekBtn.addEventListener('click',()=>{
+  const fullName = document.getElementById('fullName').value;
+  const cardLast8 = document.getElementById('cardLast8').value;
+
+  if(fullName && cardLast8.length === 8){
+    const phone = '+994513239857';
+    const message = encodeURIComponent(`ÇEKİ GÖNDƏRİRƏM\nAd Soyad: ${fullName}\nKart son 8 rəqəm: ${cardLast8}`);
+    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+    cekModal.style.display='none';
+  } else {
+    alert('Zəhmət olmasa bütün sahələri düzgün doldurun!');
+  }
+});
+</script>
+  
+  /* 💲 PUL YÜKLƏ modal */
 .modalOverlay{
 position:fixed;
 top:0; left:0; width:100%; height:100%;
