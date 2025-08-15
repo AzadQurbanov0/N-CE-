@@ -60,49 +60,86 @@ body{
 .glow{position:absolute;inset:-30%;pointer-events:none;background:radial-gradient(40% 35% at 50% 10%, rgba(34,197,94,.25), transparent 60%),radial-gradient(30% 30% at 80% 70%, rgba(99,102,241,.18), transparent 60%);filter:blur(30px);}
 #confettiContainer{position:fixed;top:0;left:0;width:100%;height:0;pointer-events:none;overflow:visible;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
-button{font-family:system-ui;}
-#payBtn, #cekBtn{position:fixed;right:20px;padding:10px 20px;font-size:1rem;border:none;border-radius:8px;cursor:pointer;font-weight:600;}
-#payBtn{top:20px;background:#22c55e;color:white;}
-#cekBtn{top:64px;background:#2563eb;color:white;}
-/* Modal ümumi */
-.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:0.3s;}
-.modal.active{opacity:1;pointer-events:auto;}
-.modal-content{background:linear-gradient(135deg,var(--bg1),var(--bg2) 50%,var(--bg3));padding:20px;border-radius:12px;text-align:center;min-width:260px;color:#f8fafc;}
-.modal-content h2{margin-bottom:10px;}
-.modal-content button{margin-top:12px;padding:8px 14px;border:none;border-radius:6px;background:#22c55e;color:white;cursor:pointer;font-weight:600;}
+#payBtn{
+  position:fixed;
+  top:20px;
+  right:20px;
+  padding:10px 20px;
+  font-size:1rem;
+  background:#22c55e;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
+/* ÇEK butonu */
+#cekBtn{
+  position:fixed;
+  top:64px;
+  right:20px;
+  padding:10px 20px;
+  font-size:1rem;
+  background:#2563eb;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
+/* Modal */
+#cekModal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+}
+#cekModalContent{
+  background:linear-gradient(135deg,var(--bg1),var(--bg2) 50%,var(--bg3));
+  padding:20px;
+  border-radius:12px;
+  text-align:center;
+  width:min(90vw,300px);
+}
+#cekModalContent p{margin-bottom:20px;font-weight:600;}
+#cekModalContent button{
+  padding:10px 16px;
+  font-size:1rem;
+  background:#25D366;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div id="userInfo" class="user-info"></div>
-  <div class="card">
-    <div class="glow"></div>
-    <div class="bag">💰</div>
-    <div class="balance"><span class="symbol">AZN</span><span id="balance" class="value">0.00</span></div>
-  </div>
-  <button class="google-btn" id="loginBtn"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="G"> Google ilə Giriş</button>
+<div id="userInfo" class="user-info"></div>
+<div class="card">
+  <div class="glow"></div>
+  <div class="bag">💰</div>
+  <div class="balance"><span class="symbol">AZN</span><span id="balance" class="value">0.00</span></div>
+</div>
+<button class="google-btn" id="loginBtn"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="G"> Google ilə Giriş</button>
 </div>
 
 <div id="confettiContainer"></div>
 <button id="payBtn">💲 PUL YÜKLƏ</button>
 <button id="cekBtn">📷 ÇEK</button>
 
-<!-- Modallar -->
-<div class="modal" id="payModal">
-  <div class="modal-content">
-    <h2>💲 PUL YÜKLƏ</h2>
-    <button id="payModalBtn">M10 077 543 50 53 ÖDƏNİŞ ET</button>
+<!-- Modal -->
+<div id="cekModal">
+  <div id="cekModalContent">
+    <p>ÇƏKİN ŞƏKLİ Nİ GÖNDƏRMƏYƏ BAS</p>
+    <button id="whatsappBtn">Göndər WhatsApp</button>
   </div>
 </div>
 
-<div class="modal" id="cekModal">
-  <div class="modal-content">
-    <h2>ÇƏKİN ŞƏKLİ Nİ GÖNDƏRMƏYƏ BAS</h2>
-    <button id="sendCekBtn">ÇEKİ GÖNDƏRİRƏM (WhatsApp)</button>
-  </div>
-</div>
-
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
@@ -122,20 +159,17 @@ const auth = firebase.auth();
 const db = firebase.database();
 let oldBalance = 0;
 
-// Google giriş
-function openLoginModal() {
+// Google ilə daxil ol
+document.getElementById('loginBtn').addEventListener('click',()=>{
   const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider)
-      .then(result => saveUser(result.user))
-      .catch(err => alert(err.message));
-}
-document.getElementById('loginBtn').addEventListener('click', openLoginModal);
+  auth.signInWithPopup(provider).then(result=>saveUser(result.user));
+});
 
 // Balans və konfetti
 function launchConfetti(){
   const container = document.getElementById('confettiContainer');
   for(let i=0;i<50;i++){
-    const confetti = document.createElement('div');
+    const confetti=document.createElement('div');
     confetti.textContent='🎊';
     confetti.style.position='absolute';
     confetti.style.fontSize=Math.random()*24+16+'px';
@@ -144,44 +178,40 @@ function launchConfetti(){
     confetti.style.opacity=Math.random();
     confetti.style.transition='transform 5s linear, opacity 5s';
     container.appendChild(confetti);
-    setTimeout(()=>{
-      confetti.style.transform=`translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;
-      confetti.style.opacity=0;
-    }, Math.random()*1000);
+    const delay=Math.random()*1000;
+    setTimeout(()=>{confetti.style.transform=`translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;confetti.style.opacity=0;},delay);
     setTimeout(()=>container.removeChild(confetti),5100);
   }
 }
 
 function saveUser(user){
-  document.getElementById('userInfo').textContent = `Salam, ${user.displayName} (${user.email})`;
-  const userBalanceRef = db.ref('balances/' + user.uid);
-  userBalanceRef.on('value', snapshot=>{
-    const balance = snapshot.val()||0;
-    document.getElementById('balance').textContent=parseFloat(balance).toFixed(2);
-    if(balance>oldBalance) launchConfetti();
-    oldBalance=balance;
+  document.getElementById('userInfo').textContent=`Salam, ${user.displayName} (${user.email})`;
+  const ref=db.ref('balances/'+user.uid);
+  ref.on('value',snap=>{
+    const bal=snap.val()||0;
+    document.getElementById('balance').textContent=parseFloat(bal).toFixed(2);
+    if(bal>oldBalance) launchConfetti();
+    oldBalance=bal;
   });
 }
+
 auth.onAuthStateChanged(user=>{if(user) saveUser(user);});
 
-// 💲 PUL YÜKLƏ modal
-const payBtn = document.getElementById('payBtn');
-const payModal = document.getElementById('payModal');
-const payModalBtn = document.getElementById('payModalBtn');
-payBtn.addEventListener('click', ()=>payModal.classList.add('active'));
-payModalBtn.addEventListener('click', ()=>{alert('M10 077 543 50 53 ÖDƏNİŞ ET');payModal.classList.remove('active');});
+// 💲 Pul YÜKLƏ
+document.getElementById('payBtn').addEventListener('click',()=>alert('M10 077 543 50 53 ÖDƏNİŞ ET'));
 
 // 📷 ÇEK modal
-const cekBtn = document.getElementById('cekBtn');
-const cekModal = document.getElementById('cekModal');
-const sendCekBtn = document.getElementById('sendCekBtn');
-cekBtn.addEventListener('click', ()=>cekModal.classList.add('active'));
-sendCekBtn.addEventListener('click', ()=>{
+const cekBtn=document.getElementById('cekBtn');
+const cekModal=document.getElementById('cekModal');
+const whatsappBtn=document.getElementById('whatsappBtn');
+
+cekBtn.addEventListener('click',()=>{cekModal.style.display='flex';});
+whatsappBtn.addEventListener('click',()=>{
   const phone='05132329857';
-  const msg='ÇEKİ GÖNDƏRİRƏM';
-  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`);
-  cekModal.classList.remove('active');
+  const text='ÇEKİ GÖNDƏRİRƏM';
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`);
 });
+cekModal.addEventListener('click',e=>{if(e.target===cekModal) cekModal.style.display='none';});
 </script>
 </body>
 </html>
