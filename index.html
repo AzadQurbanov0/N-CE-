@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="az">
 <head>
 <meta charset="UTF-8">
@@ -60,40 +60,57 @@ body{
 .glow{position:absolute;inset:-30%;pointer-events:none;background:radial-gradient(40% 35% at 50% 10%, rgba(34,197,94,.25), transparent 60%),radial-gradient(30% 30% at 80% 70%, rgba(99,102,241,.18), transparent 60%);filter:blur(30px);}
 #confettiContainer{position:fixed;top:0;left:0;width:100%;height:0;pointer-events:none;overflow:visible;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
-#payBtn{
+
+#payBtn, #cekBtn{
   position:fixed;
-  top:20px;
   right:20px;
   padding:10px 20px;
+  font-size:1rem;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
+#payBtn{
+  top:20px;
+  background:#22c55e;
+}
+#cekBtn{
+  top:64px;
+  background:#2563eb;
+}
+
+/* Modallar */
+.modal{
+  display:none;
+  position:fixed;
+  top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,0.6);
+  justify-content:center;
+  align-items:center;
+  z-index:1000;
+}
+.modal-content{
+  background:linear-gradient(135deg,var(--bg1),var(--bg2));
+  padding:20px;
+  border-radius:12px;
+  color:white;
+  text-align:center;
+  max-width:300px;
+  width:90%;
+}
+.modal-content button{
+  margin-top:20px;
+  padding:8px 16px;
   font-size:1rem;
   background:#22c55e;
-  color:white;
   border:none;
   border-radius:8px;
+  color:white;
   cursor:pointer;
   font-weight:600;
 }
-/* ÇEK butonu */
-#cekBtn{
-  position:fixed;
-  top:64px;
-  right:20px;
-  padding:10px 20px;
-  font-size:1rem;
-  background:#2563eb;
-  color:white;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:600;
-}
-/* ÇEK pəncərə */
-#cekModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;}
-#cekModalContent{background:linear-gradient(135deg,#0f0c29,#302b63 50%,#24243e);padding:20px;border-radius:12px;text-align:center;color:#f8fafc;min-width:250px;}
-#cekModalContent button{margin-top:10px;padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-weight:600;}
-#cekModalContent #chooseFileBtn{background:#22c55e;color:white;}
-#cekModalContent #sendCekBtn{background:#2563eb;color:white;}
-#uploadInput{display:none;}
 </style>
 </head>
 <body>
@@ -108,24 +125,28 @@ body{
 </div>
 
 <div id="confettiContainer"></div>
+
 <button id="payBtn">💲 PUL YÜKLƏ</button>
 <button id="cekBtn">📷 ÇEK</button>
-<input id="uploadInput" type="file" accept="image/*">
 
-<!-- ÇEK pəncərə -->
-<div id="cekModal">
-  <div id="cekModalContent">
-    <p>ÇEKİN ŞƏKLİNİ GÖNDƏRMƏYƏ BAS</p>
-    <button id="chooseFileBtn">ŞƏKİL SEÇ</button>
-    <button id="sendCekBtn">GöNDƏR</button>
+<!-- Modallar -->
+<div id="payModal" class="modal">
+  <div class="modal-content">
+    <p>M10 077 543 50 53</p>
+    <button id="sendPay">ÖDƏNİŞ ET</button>
   </div>
 </div>
 
-<!-- Firebase SDK -->
+<div id="cekModal" class="modal">
+  <div class="modal-content">
+    <p>ÇƏKİN ŞƏKLİ Nİ GÖNDƏRMƏYƏ BAS</p>
+    <button id="sendCek">GÖNDƏR</button>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -138,94 +159,81 @@ const firebaseConfig = {
   appId: "1:242221260650:web:d140153a2167c4738dcf13",
   measurementId: "G-YKKRHJKYNB"
 };
+
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
-const storage = firebase.storage();
-
 let oldBalance = 0;
 
-// Google login
+// Google ilə daxil ol
 function openLoginModal() {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider)
       .then(result => saveUser(result.user))
       .catch(error => alert(error.message));
 }
+
 document.getElementById('loginBtn').addEventListener('click', openLoginModal);
 
-// Confetti
+// Konfetti effekti
 function launchConfetti(){
   const container = document.getElementById('confettiContainer');
   const count = 50;
   for(let i=0;i<count;i++){
     const confetti = document.createElement('div');
     confetti.textContent = '🎊';
-    confetti.style.position='absolute';
+    confetti.style.position = 'absolute';
     confetti.style.fontSize = Math.random()*24+16+'px';
     confetti.style.left = Math.random()*100+'%';
-    confetti.style.top='-5%';
-    confetti.style.opacity=Math.random();
-    confetti.style.transition='transform 5s linear, opacity 5s';
+    confetti.style.top = '-5%';
+    confetti.style.opacity = Math.random();
+    confetti.style.transition = 'transform 5s linear, opacity 5s';
     container.appendChild(confetti);
-    const delay=Math.random()*1000;
+    const delay = Math.random()*1000;
     setTimeout(()=>{
-      confetti.style.transform=`translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;
-      confetti.style.opacity=0;
+      confetti.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;
+      confetti.style.opacity = 0;
     }, delay);
-    setTimeout(()=>container.removeChild(confetti),5100);
+    setTimeout(()=>container.removeChild(confetti), 5100);
   }
 }
 
-// User save & balance
+// İstifadəçini yadda saxlamaq və balansı göstərmək
 function saveUser(user){
-  document.getElementById('userInfo').textContent=`Salam, ${user.displayName} (${user.email})`;
-  const userBalanceRef = db.ref('balances/'+user.uid);
-  userBalanceRef.on('value',(snapshot)=>{
-    const balance = snapshot.val()||0;
-    document.getElementById('balance').textContent=parseFloat(balance).toFixed(2);
-    if(balance>oldBalance) launchConfetti();
-    oldBalance=balance;
+  document.getElementById('userInfo').textContent = `Salam, ${user.displayName} (${user.email})`;
+  const userBalanceRef = db.ref('balances/' + user.uid);
+  userBalanceRef.on('value', (snapshot) => {
+    const balance = snapshot.val() || 0;
+    document.getElementById('balance').textContent = parseFloat(balance).toFixed(2);
+    if(balance > oldBalance) launchConfetti();
+    oldBalance = balance;
   });
 }
+auth.onAuthStateChanged((user) => { if(user) saveUser(user); });
 
-auth.onAuthStateChanged(user=>{if(user) saveUser(user);});
+// 💲 PUL YÜKLƏ modal
+const payBtn = document.getElementById('payBtn');
+const payModal = document.getElementById('payModal');
+const sendPay = document.getElementById('sendPay');
 
-// PUL YÜKLƏ
-document.getElementById('payBtn').addEventListener('click', ()=>{
-  alert('M10 077 543 50 53 ÖDƏNİŞ ET');
+payBtn.addEventListener('click', ()=>{payModal.style.display='flex';});
+sendPay.addEventListener('click', ()=>{alert('ÖDƏNİŞ ET basıldı'); payModal.style.display='none';});
+
+// 📷 ÇEK modal və WhatsApp açma
+const cekBtn = document.getElementById('cekBtn');
+const cekModal = document.getElementById('cekModal');
+const sendCek = document.getElementById('sendCek');
+
+cekBtn.addEventListener('click', ()=>{cekModal.style.display='flex';});
+sendCek.addEventListener('click', ()=>{
+  cekModal.style.display='none';
+  window.open('https://wa.me/994513239857?text=%C3%87EK%C4%B0%20G%C3%96ND%C3%87R%C4%B0R%C4%B0M','_blank');
 });
 
-// ÇEK pəncərə
-const cekBtn=document.getElementById('cekBtn');
-const cekModal=document.getElementById('cekModal');
-const chooseFileBtn=document.getElementById('chooseFileBtn');
-const cekUpload=document.getElementById('uploadInput');
-const sendCekBtn=document.getElementById('sendCekBtn');
-
-cekBtn.addEventListener('click',()=>{cekModal.style.display='flex';});
-chooseFileBtn.addEventListener('click',()=>{cekUpload.click();});
-
-sendCekBtn.addEventListener('click',async ()=>{
-  const file = cekUpload.files[0];
-  if(!file){alert('Əvvəlcə şəkil seçin.'); return;}
-  const user = auth.currentUser;
-  if(!user){alert('Əvvəlcə Google ilə daxil olun.'); return;}
-  try{
-    const ts = Date.now();
-    const ext = (file.name.split('.').pop()||'jpg').toLowerCase();
-    const path = `receipts/${user.uid}/${ts}.${ext}`;
-    const snap = await storage.ref(path).put(file);
-    const url = await snap.ref.getDownloadURL();
-    await db.ref('receipts').push({uid:user.uid,name:user.displayName,email:user.email,url,createdAt:firebase.database.ServerValue.TIMESTAMP});
-    // WhatsApp aç və mesaj yaz
-    const waNumber='+994513239857';
-    const waMsg='ÇEKİ GÖNDƏRİRƏM';
-    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`,'_blank');
-    cekModal.style.display='none';
-    cekUpload.value='';
-    alert('Şəkil uğurla göndərildi. ✅');
-  }catch(err){console.error(err); alert('Xəta: '+err.message);}
+// Modal xaric kliklə bağlama
+window.addEventListener('click', (e)=>{
+  if(e.target===payModal) payModal.style.display='none';
+  if(e.target===cekModal) cekModal.style.display='none';
 });
 </script>
 </body>
