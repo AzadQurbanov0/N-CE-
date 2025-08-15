@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Para Çuvalı və Google Giriş</title>
+<title>Para Çuvalı</title>
 <style>
 :root{
   --bg1:#0f0c29; --bg2:#302b63; --bg3:#24243e; --card:rgba(255,255,255,0.06);
@@ -14,12 +14,8 @@ html{height:100%;}
 body{
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,'Helvetica Neue',Arial,'Apple Color Emoji','Segoe UI Emoji';
   color:var(--text); background:linear-gradient(135deg,var(--bg1),var(--bg2) 50%,var(--bg3));
-  /* YENİ: MƏRKƏZLƏMƏ DÜZƏLİŞİ */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh; /* Ekranın tam hündürlüyünü əhatə et */
-  overflow:hidden;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; overflow:hidden;
 }
 .wrap{display:grid;place-items:center;gap:12px;text-align:center;padding:20px;}
 .user-info{font-size:1rem;font-weight:600;opacity:.9;margin-bottom:6px;}
@@ -48,28 +44,20 @@ body{
 .modalOverlay{ position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:9999; display:none; }
 .modalContent{ background:linear-gradient(135deg,var(--bg1),var(--bg2)); padding:20px; border-radius:12px; text-align:center; color:white; width: min(90vw, 350px); }
 .modalContent input { display: block; width: 95%; margin: 10px auto; padding: 10px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white; font-size: 1rem; }
+.modalContent button { margin-top:12px; padding:8px 16px; font-size:1rem; border:none; border-radius:8px; cursor:pointer; }
+#notifications-list { max-height: 300px; overflow-y: auto; text-align: left; margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; }
+.notification-item { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; margin-bottom: 8px; font-size: 0.9rem; }
 
 /* DƏSTƏK SİSTEMİ (CHAT) */
 #support-widget { position: fixed; bottom: 20px; right: 20px; z-index: 10000; }
-#chat-toggle-btn {
-  background: #0ea5e9; color: white; width: 60px; height: 60px; border-radius: 50%;
-  border: none; font-size: 28px; cursor: pointer; display: flex;
-  align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-  position: relative; /* Bildiriş üçün lazımdır */
-}
-/* YENİ: DƏSTƏK BİLDİRİŞİ */
-#chat-notification-badge {
-  position: absolute; top: 0px; right: 0px; background: #ef4444; color: white;
-  min-width: 22px; height: 22px; border-radius: 50%; display: none;
-  align-items: center; justify-content: center; font-size: 12px; font-weight: bold;
-  padding: 2px;
-}
+#chat-toggle-btn { background: #0ea5e9; color: white; width: 60px; height: 60px; border-radius: 50%; border: none; font-size: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); position: relative; }
+#chat-notification-badge { position: absolute; top: 0px; right: 0px; background: #ef4444; color: white; min-width: 22px; height: 22px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; padding: 2px; }
 #chat-window { position: absolute; bottom: 80px; right: 0; width: 320px; max-width: 90vw; height: 400px; background: var(--bg3); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: none; flex-direction: column; overflow: hidden; }
 #chat-header { padding: 10px; background: rgba(0,0,0,0.2); font-weight: bold; text-align: center; }
 #chat-messages { flex-grow: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .message { max-width: 80%; padding: 8px 12px; border-radius: 10px; line-height: 1.4; word-break: break-word; }
-.message.user { background: #2563eb; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
-.message.admin { background: #4b5563; color: white; align-self: flex-start; border-bottom-left-radius: 2px; }
+.message.user { background: #2563eb; color: white; align-self: flex-end; }
+.message.admin { background: #4b5563; color: white; align-self: flex-start; }
 #chat-input-area { display: flex; padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
 #chat-input { flex-grow: 1; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 8px; color: white; }
 #send-chat-btn { background: #0ea5e9; color: white; border: none; padding: 0 12px; border-radius: 6px; margin-left: 8px; cursor: pointer; font-weight: bold; }
@@ -77,7 +65,7 @@ body{
 </head>
 <body>
 
-<div id="notification-bell"><span>🔔</span><div id="notification-badge">1</div></div>
+<div id="notification-bell"><span>🔔</span><div id="notification-badge" style="display:none;">1</div></div>
 <div class="wrap">
   <div id="userInfo" class="user-info"></div>
   <div class="card"><div class="bag">💰</div><div class="balance"><span class="symbol">AZN</span><span id="balance" class="value">0.00</span></div></div>
@@ -89,112 +77,151 @@ body{
   <button id="pulCekBtn">🏦 ÇEK</button>
 </div>
 
+<div class="modalOverlay" id="payModal"><div class="modalContent"><p>💲 PUL YÜKLƏ M10 077 543 50 53</p><button class="close-modal-btn">Bağla</button></div></div>
+<div class="modalOverlay" id="cekModal"><div class="modalContent"><p>ÇƏKİN ŞƏKLİNİ GÖNDƏRMƏYƏ BAS</p><button id="sendCekBtn">GÖNDƏR</button><button class="close-modal-btn">Bağla</button></div></div>
+<div class="modalOverlay" id="pulCekModal"><div class="modalContent"><h3>Pul Çıxarma Sorğusu</h3><input type="number" id="withdrawAmount" placeholder="Məbləğ (AZN)" required><input type="text" id="userName" placeholder="Ad" required><input type="text" id="userSurname" placeholder="Soyad" required><input type="tel" id="cardNumber" placeholder="Kart nömrəsi (16 rəqəm)" maxlength="16" pattern="\d{16}" required><button id="withdrawBtn">💸 PUL ÇIXART</button><button class="close-modal-btn">Bağla</button></div></div>
+<div class="modalOverlay" id="notificationsModal"><div class="modalContent"><h3>Əməliyyat Tarixçəsi</h3><div id="notifications-list"></div><button class="close-modal-btn">Bağla</button></div></div>
+
 <div id="support-widget">
-  <div id="chat-window">
-    <div id="chat-header">Dəstək</div><div id="chat-messages"></div>
-    <div id="chat-input-area"><input type="text" id="chat-input" placeholder="Mesajınızı yazın..."><button id="send-chat-btn"> göndər</button></div>
-  </div>
-  <button id="chat-toggle-btn">
-    <span>💬</span>
-    <div id="chat-notification-badge"></div>
-  </button>
+  <div id="chat-window"><div id="chat-header">Dəstək</div><div id="chat-messages"></div><div id="chat-input-area"><input type="text" id="chat-input" placeholder="Mesajınızı yazın..."><button id="send-chat-btn"> göndər</button></div></div>
+  <button id="chat-toggle-btn"><span>💬</span><div id="chat-notification-badge" style="display:none;"></div></button>
 </div>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
 <script>
-// --- FIREBASE & AUTH ---
-const firebaseConfig = { apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw", authDomain: "niceuc-e5986.firebaseapp.com", databaseURL: "https://niceuc-e5986-default-rtdb.firebaseio.com", projectId: "niceuc-e5986", storageBucket: "niceuc-e5986.appspot.com", appId: "1:242221260650:web:d140153a2167c4738dcf13" };
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.database();
-let balanceListener = null;
-let chatStateListener = null;
+    const firebaseConfig = { apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw", authDomain: "niceuc-e5986.firebaseapp.com", databaseURL: "https://niceuc-e5986-default-rtdb.firebaseio.com", projectId: "niceuc-e5986", storageBucket: "niceuc-e5986.appspot.com", appId: "1:242221260650:web:d140153a2167c4738dcf13" };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+    
+    let currentBalance = 0;
+    let balanceListener = null;
+    let chatStateListener = null;
+    let messageListener = null;
 
-auth.onAuthStateChanged((user) => {
-  if (user) {
-    document.getElementById('userInfo').textContent = `Salam, ${user.displayName}`;
-    db.ref('users/' + user.uid).set({ name: user.displayName, email: user.email });
-    if (balanceListener) balanceListener.off();
-    balanceListener = db.ref('balances/' + user.uid).on('value', snapshot => {
-      document.getElementById('balance').textContent = parseFloat(snapshot.val() || 0).toFixed(2);
+    // --- AUTHENTICATION ---
+    auth.onAuthStateChanged((user) => {
+        const supportWidget = document.getElementById('support-widget');
+        if (user) {
+            document.getElementById('userInfo').textContent = `Salam, ${user.displayName}`;
+            db.ref('users/' + user.uid).set({ name: user.displayName, email: user.email });
+            
+            if (balanceListener) balanceListener.off();
+            balanceListener = db.ref('balances/' + user.uid).on('value', snapshot => {
+                currentBalance = snapshot.val() || 0;
+                document.getElementById('balance').textContent = parseFloat(currentBalance).toFixed(2);
+            });
+            
+            supportWidget.style.display = 'block';
+            initializeSupportChat(user);
+        } else {
+            document.getElementById('userInfo').textContent = '';
+            document.getElementById('balance').textContent = '0.00';
+            if (balanceListener) balanceListener.off();
+            if (chatStateListener) chatStateListener.off();
+            supportWidget.style.display = 'none';
+        }
     });
-    initializeSupportChat(user);
-  } else {
-    document.getElementById('userInfo').textContent = '';
-    document.getElementById('balance').textContent = '0.00';
-    if (balanceListener) balanceListener.off();
-    if (chatStateListener) chatStateListener.off();
-    document.getElementById('support-widget').style.display = 'none';
-  }
-});
 
-// --- DƏSTƏK SİSTEMİ (CHAT) ---
-const chatWindow = document.getElementById('chat-window');
-const chatToggleBtn = document.getElementById('chat-toggle-btn');
-const chatMessages = document.getElementById('chat-messages');
-const chatInput = document.getElementById('chat-input');
-const sendChatBtn = document.getElementById('send-chat-btn');
-const chatBadge = document.getElementById('chat-notification-badge');
-let messageListener = null;
+    // --- BÜTÜN DÜYMƏLƏR ÜÇÜN EVENT LISTENERS ---
+    document.getElementById('loginBtn').addEventListener('click', () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(error => alert(error.message));
+    });
+    
+    document.getElementById('payBtn').addEventListener('click', () => document.getElementById('payModal').style.display = 'flex');
+    document.getElementById('cekBtn').addEventListener('click', () => document.getElementById('cekModal').style.display = 'flex');
+    document.getElementById('pulCekBtn').addEventListener('click', () => document.getElementById('pulCekModal').style.display = 'flex');
+    document.getElementById('notification-bell').addEventListener('click', () => document.getElementById('notificationsModal').style.display = 'flex');
+    
+    document.querySelectorAll('.close-modal-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.target.closest('.modalOverlay').style.display = 'none';
+        });
+    });
 
-chatToggleBtn.addEventListener('click', () => {
-  const isHidden = chatWindow.style.display === 'none' || chatWindow.style.display === '';
-  chatWindow.style.display = isHidden ? 'flex' : 'none';
-  // Pəncərə açıldıqda bildirişi sıfırla
-  if (isHidden && auth.currentUser) {
-    db.ref(`support_chats/${auth.currentUser.uid}/new_message_for_user_count`).set(0);
-  }
-});
+    document.getElementById('sendCekBtn').addEventListener('click', () => {
+        window.open(`https://wa.me/+994513239857?text=${encodeURIComponent('ÇEKİ GÖNDƏRİRƏM')}`, '_blank');
+        document.getElementById('cekModal').style.display = 'none';
+    });
 
-function initializeSupportChat(user) {
-  document.getElementById('support-widget').style.display = 'block';
-  if (messageListener) messageListener.off(); // Köhnə mesajları təmizlə
-  if (chatStateListener) chatStateListener.off(); // Köhnə bildiriş dinləyicisini təmizlə
+    document.getElementById('withdrawBtn').addEventListener('click', () => {
+        const user = auth.currentUser;
+        if (!user) return alert('Zəhmət olmasa, daxil olun.');
+        
+        const amount = parseFloat(document.getElementById('withdrawAmount').value);
+        const name = document.getElementById('userName').value;
+        const surname = document.getElementById('userSurname').value;
+        const card = document.getElementById('cardNumber').value;
+        
+        if (!amount || !name || !surname || !card) return alert('Bütün xanaları doldurun.');
+        if (amount > currentBalance) return alert('Balansınızda kifayət qədər vəsait yoxdur.');
+        if (card.length !== 16 || !/^\d{16}$/.test(card)) return alert('Kart nömrəsi 16 rəqəmdən ibarət olmalıdır.');
 
-  // YENİ: Bildirişləri dinlə
-  const chatRef = db.ref(`support_chats/${user.uid}`);
-  chatStateListener = chatRef.on('value', (snapshot) => {
-    const count = snapshot.val()?.new_message_for_user_count || 0;
-    if (count > 0) {
-      chatBadge.textContent = count;
-      chatBadge.style.display = 'flex';
-    } else {
-      chatBadge.style.display = 'none';
+        const request = { uid: user.uid, userEmail: user.email, requestData: { name, surname, cardNumber: card, amount }, status: 'pending', createdAt: firebase.database.ServerValue.TIMESTAMP };
+        db.ref('withdrawals').push(request).then(() => {
+            alert('Sorğunuz göndərildi!');
+            document.getElementById('pulCekModal').style.display = 'none';
+        });
+    });
+    
+    // --- DƏSTƏK SİSTEMİ (CHAT) ---
+    function initializeSupportChat(user) {
+        const chatWindow = document.getElementById('chat-window');
+        const chatToggleBtn = document.getElementById('chat-toggle-btn');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendChatBtn = document.getElementById('send-chat-btn');
+        const chatBadge = document.getElementById('chat-notification-badge');
+        
+        if (messageListener) messageListener.off();
+        if (chatStateListener) chatStateListener.off();
+
+        chatToggleBtn.onclick = () => {
+            const isHidden = chatWindow.style.display === 'none' || chatWindow.style.display === '';
+            chatWindow.style.display = isHidden ? 'flex' : 'none';
+            if (isHidden) {
+                db.ref(`support_chats/${user.uid}/new_message_for_user_count`).set(0);
+            }
+        };
+
+        const chatRef = db.ref(`support_chats/${user.uid}`);
+        chatStateListener = chatRef.on('value', (snapshot) => {
+            const count = snapshot.val()?.new_message_for_user_count || 0;
+            chatBadge.textContent = count;
+            chatBadge.style.display = count > 0 ? 'flex' : 'none';
+        });
+
+        chatMessages.innerHTML = '';
+        const messagesRef = db.ref(`support_chats/${user.uid}/messages`).limitToLast(50);
+        messageListener = messagesRef.on('child_added', (snapshot) => {
+            const message = snapshot.val();
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${message.sender === 'admin' ? 'admin' : 'user'}`;
+            messageDiv.textContent = message.text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+
+        const sendMessage = () => {
+            const text = chatInput.value.trim();
+            if (text === '') return;
+            const messageData = { text: text, sender: user.uid, timestamp: firebase.database.ServerValue.TIMESTAMP };
+            db.ref(`support_chats/${user.uid}/messages`).push(messageData);
+            db.ref(`support_chats/${user.uid}`).update({
+                user_email: user.email,
+                last_message: text,
+                last_updated: firebase.database.ServerValue.TIMESTAMP,
+                new_message_for_admin: true
+            });
+            chatInput.value = '';
+        };
+
+        sendChatBtn.onclick = sendMessage;
+        chatInput.onkeydown = (event) => { if (event.key === 'Enter') sendMessage(); };
     }
-  });
-  
-  // Mesajları yüklə
-  chatMessages.innerHTML = '';
-  const messagesRef = db.ref(`support_chats/${user.uid}/messages`).limitToLast(50);
-  messageListener = messagesRef.on('child_added', (snapshot) => {
-    const message = snapshot.val();
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${message.sender === 'admin' ? 'admin' : 'user'}`;
-    messageDiv.textContent = message.text;
-    chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  });
-  
-  const sendMessage = () => {
-    const text = chatInput.value.trim();
-    if (text === '') return;
-    const messageData = { text: text, sender: user.uid, timestamp: firebase.database.ServerValue.TIMESTAMP };
-    db.ref(`support_chats/${user.uid}/messages`).push(messageData);
-    db.ref(`support_chats/${user.uid}`).update({
-      user_email: user.email,
-      last_message: text,
-      last_updated: firebase.database.ServerValue.TIMESTAMP,
-      new_message_for_admin: true
-    });
-    chatInput.value = '';
-  };
-  
-  sendChatBtn.onclick = sendMessage;
-  chatInput.onkeydown = (event) => { if (event.key === 'Enter') sendMessage(); };
-}
-
-// Qalan köhnə kodlar olduğu kimi qalır...
 </script>
 </body>
 </html>
