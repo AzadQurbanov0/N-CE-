@@ -41,7 +41,6 @@ body{
 .modalOverlay{ position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:9999; display:none; }
 .modalContent{ background:linear-gradient(135deg,var(--bg1),var(--bg2)); padding:20px; border-radius:12px; text-align:center; color:white; width: min(90vw, 350px); }
 
-/* === BURADA DƏYİŞİKLİK EDİLDİ === */
 .modalContent input {
   display: block;
   width: 95%;
@@ -49,11 +48,10 @@ body{
   padding: 10px;
   border-radius: 5px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  background: #FFFFFF; /* Arxa fonu tam ağ edirik */
-  color: #212529;      /* Yazı rəngini tünd boz (qara kimi) edirik */
+  background: #FFFFFF;
+  color: #212529;
   font-size: 1rem;
 }
-/* === DƏYİŞİKLİYİN SONU === */
 
 .modalContent button { margin-top:12px; padding:8px 16px; font-size:1rem; border:none; border-radius:8px; cursor:pointer; }
 #notifications-list { max-height: 400px; overflow-y: auto; text-align: left; margin-top: 15px; padding: 5px; background: rgba(0,0,0,0.2); border-radius: 8px; }
@@ -89,13 +87,17 @@ body{
 <div class="modalOverlay" id="pulCekModal"><div class="modalContent"><h3>Pul Çıxarma Sorğusu</h3><input type="number" id="withdrawAmount" placeholder="Məbləğ (AZN)" required><input type="text" id="userName" placeholder="Ad" required><input type="text" id="userSurname" placeholder="Soyad" required><input type="tel" id="cardNumber" placeholder="Kart nömrəsi (16 rəqəm)" maxlength="16" required><button id="withdrawBtn">💸 PUL ÇIXART</button><button class="close-modal-btn">Bağla</button></div></div>
 <div class="modalOverlay" id="notificationsModal"><div class="modalContent"><h3>Əməliyyat Tarixçəsi</h3><div id="notifications-list"></div><button class="close-modal-btn">Bağla</button></div></div>
 <div id="support-widget"><div id="chat-window"><div id="chat-header">Dəstək</div><div id="chat-messages"></div><div id="chat-input-area"><input type="text" id="chat-input" placeholder="Mesajınızı yazın..."><button id="send-chat-btn"> göndər</button></div></div><button id="chat-toggle-btn"><span>💬</span><div id="chat-notification-badge" style="display:none;"></div></button></div>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
 <script>
     const firebaseConfig = { apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw", authDomain: "niceuc-e5986.firebaseapp.com", databaseURL: "https://niceuc-e5986-default-rtdb.firebaseio.com", projectId: "niceuc-e5986", appId: "1:242221260650:web:d140153a2167c4738dcf13" };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
     let currentBalance = 0, balanceListener = null, chatStateListener = null, messageListener = null;
+
     auth.onAuthStateChanged(user => {
         const supportWidget = document.getElementById('support-widget');
         if (user) {
@@ -104,9 +106,7 @@ body{
             if (balanceListener) balanceListener.off();
             balanceListener = db.ref('balances/' + user.uid).on('value', snapshot => {
                 const balanceData = snapshot.val();
-                let newBalance = 0;
-                if (balanceData && typeof balanceData.amount === 'number') { newBalance = balanceData.amount; } 
-                else if (typeof balanceData === 'number') { newBalance = balanceData; }
+                let newBalance = (balanceData && typeof balanceData.amount === 'number') ? balanceData.amount : 0;
                 currentBalance = newBalance;
                 document.getElementById('balance').textContent = newBalance.toFixed(2);
             });
@@ -122,12 +122,14 @@ body{
             supportWidget.style.display = 'none';
         }
     });
+
     document.getElementById('loginBtn').addEventListener('click', () => { const provider = new firebase.auth.GoogleAuthProvider(); auth.signInWithPopup(provider).catch(error => alert(error.message)); });
     document.getElementById('payBtn').addEventListener('click', () => document.getElementById('payModal').style.display = 'flex');
     document.getElementById('cekBtn').addEventListener('click', () => document.getElementById('cekModal').style.display = 'flex');
     document.getElementById('pulCekBtn').addEventListener('click', () => document.getElementById('pulCekModal').style.display = 'flex');
     document.querySelectorAll('.close-modal-btn').forEach(btn => btn.addEventListener('click', (e) => e.target.closest('.modalOverlay').style.display = 'none'));
     document.getElementById('sendCekBtn').addEventListener('click', () => { window.open(`https://wa.me/+994513239857?text=${encodeURIComponent('ÇEKİ GÖNDƏRİRƏM')}`, '_blank'); document.getElementById('cekModal').style.display = 'none'; });
+    
     document.getElementById('notification-bell').addEventListener('click', () => {
         const user = auth.currentUser; if (!user) return alert('Tarixçəyə baxmaq üçün daxil olun.');
         const modal = document.getElementById('notificationsModal'), list = document.getElementById('notifications-list');
@@ -147,18 +149,67 @@ body{
             });
         });
     });
+
+    // === AVTOMATİK SİSTEM ÜÇÜN YENİLƏNMİŞ KOD ===
     document.getElementById('withdrawBtn').addEventListener('click', () => {
-        const user = auth.currentUser; if (!user) return alert('Zəhmət olmasa, daxil olun.');
-        const amount = parseFloat(document.getElementById('withdrawAmount').value), name = document.getElementById('userName').value, surname = document.getElementById('userSurname').value, card = document.getElementById('cardNumber').value;
+        const user = auth.currentUser;
+        if (!user) return alert('Zəhmət olmasa, daxil olun.');
+
+        const amount = parseFloat(document.getElementById('withdrawAmount').value);
+        const name = document.getElementById('userName').value.trim();
+        const surname = document.getElementById('userSurname').value.trim();
+        const card = document.getElementById('cardNumber').value.trim();
+
         if (isNaN(amount) || amount <= 0 || !name || !surname || !card) return alert('Bütün xanaları düzgün doldurun.');
         if (card.length !== 16 || isNaN(card)) return alert('Kart nömrəsi 16 rəqəmdən ibarət olmalıdır.');
-        if (amount > currentBalance) return alert('Balansınızda kifayət qədər vəsait yoxdur.');
-        const request = { uid: user.uid, userEmail: user.email, requestData: { name, surname, cardNumber: card, amount }, status: 'pending', createdAt: firebase.database.ServerValue.TIMESTAMP };
-        db.ref('withdrawals').push(request).then(() => {
-            alert('Sorğunuz göndərildi və hazırda gözləmədədir.'); document.getElementById('notification-badge').style.display = 'flex'; document.getElementById('pulCekModal').style.display = 'none';
-            document.getElementById('withdrawAmount').value = ''; document.getElementById('userName').value = ''; document.getElementById('userSurname').value = ''; document.getElementById('cardNumber').value = '';
-        }).catch(err => { alert('Sorğu göndərilərkən xəta baş verdi: ' + err.message); });
+
+        const balanceRef = db.ref('balances/' + user.uid);
+        
+        // Balans əməliyyatını təhlükəsiz Transaction ilə edirik
+        balanceRef.transaction(currentData => {
+            let currentBalance = (currentData && currentData.amount) ? currentData.amount : 0;
+            if (amount > currentBalance) {
+                // Balans kifayət etmirsə, əməliyyatı ləğv et
+                return; // undefined qaytarmaq əməliyyatı ləğv edir
+            }
+            // Balansdan məbləği çıx
+            return { amount: currentBalance - amount };
+        }, (error, committed, snapshot) => {
+            if (error) {
+                alert('Əməliyyat zamanı xəta baş verdi: ' + error.message);
+            } else if (!committed) {
+                // Əgər transaction ləğv edilibsə (balans çatışmazlığı)
+                alert('Balansınızda kifayət qədər vəsait yoxdur.');
+            } else {
+                // Əgər balansdan pul uğurla çıxılıbsa, indi sorğunu yarat
+                const request = { 
+                    uid: user.uid, 
+                    userEmail: user.email, 
+                    requestData: { name, surname, cardNumber: card, amount }, 
+                    status: 'pending', 
+                    createdAt: firebase.database.ServerValue.TIMESTAMP 
+                };
+                
+                db.ref('withdrawals').push(request).then(() => {
+                    alert('Sorğunuz göndərildi. Məbləğ balansınızdan çıxıldı və admin təsdiqini gözləyir.');
+                    document.getElementById('notification-badge').style.display = 'flex';
+                    document.getElementById('pulCekModal').style.display = 'none';
+                    document.getElementById('withdrawAmount').value = '';
+                    document.getElementById('userName').value = '';
+                    document.getElementById('userSurname').value = '';
+                    document.getElementById('cardNumber').value = '';
+                }).catch(err => {
+                    alert('Sorğu yaradılarkən xəta baş verdi, məbləğ balansınıza geri qaytarılır: ' + err.message);
+                    // Sorğu yaradıla bilmədisə, pulu geri qaytarmaq vacibdir
+                    balanceRef.transaction(currentData => {
+                        let currentBalance = (currentData && currentData.amount) ? currentData.amount : 0;
+                        return { amount: currentBalance + amount };
+                    });
+                });
+            }
+        });
     });
+
     function initializeSupportChat(user) {
         const chatWindow = document.getElementById('chat-window'), chatToggleBtn = document.getElementById('chat-toggle-btn'), chatMessages = document.getElementById('chat-messages'), chatInput = document.getElementById('chat-input'), sendChatBtn = document.getElementById('send-chat-btn'), chatBadge = document.getElementById('chat-notification-badge');
         if (messageListener) messageListener.off(); if (chatStateListener) chatStateListener.off();
