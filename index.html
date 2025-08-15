@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="az">
 <head>
 <meta charset="UTF-8">
@@ -60,38 +60,24 @@ body{
 .glow{position:absolute;inset:-30%;pointer-events:none;background:radial-gradient(40% 35% at 50% 10%, rgba(34,197,94,.25), transparent 60%),radial-gradient(30% 30% at 80% 70%, rgba(99,102,241,.18), transparent 60%);filter:blur(30px);}
 #confettiContainer{position:fixed;top:0;left:0;width:100%;height:0;pointer-events:none;overflow:visible;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
-/* Pul YÜKLƏ */
-#payBtn{
+
+#payBtn,#cekBtn{
   position:fixed;
-  top:20px;
   right:20px;
   padding:10px 20px;
   font-size:1rem;
-  background:#22c55e;
   color:white;
   border:none;
   border-radius:8px;
   cursor:pointer;
   font-weight:600;
 }
-/* ÇEK */
-#cekBtn{
-  position:fixed;
-  top:64px;
-  right:20px;
-  padding:10px 20px;
-  font-size:1rem;
-  background:#2563eb;
-  color:white;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:600;
-}
+#payBtn{top:20px;background:#22c55e;}
+#cekBtn{top:64px;background:#2563eb;}
 #uploadInput{display:none;}
 
-/* Overlay pəncərə */
-#cekOverlay{
+/* Overlay */
+.overlay{
   display:none;
   position:fixed;
   inset:0;
@@ -99,23 +85,23 @@ body{
   place-items:center;
   z-index:1000;
 }
-#cekContent{
+.overlayContent{
   background:linear-gradient(135deg,var(--bg1),var(--bg2));
   padding:20px;
   border-radius:12px;
   text-align:center;
   color:white;
 }
-#waBtn{
+.overlayContent button{
   margin-top:12px;
   padding:8px 16px;
-  background:#25d366;
-  color:white;
   border:none;
   border-radius:6px;
   font-weight:600;
   cursor:pointer;
 }
+#waBtn{background:#25d366;color:white;}
+#closePayBtn{background:#22c55e;color:white;}
 </style>
 </head>
 <body>
@@ -134,15 +120,22 @@ body{
 <button id="cekBtn">📷 ÇEK</button>
 <input id="uploadInput" type="file" accept="image/*" capture="environment">
 
-<!-- Overlay -->
-<div id="cekOverlay">
-  <div id="cekContent">
+<!-- Overlay ÇEK -->
+<div id="cekOverlay" class="overlay">
+  <div class="overlayContent">
     <h2>ÇƏKİN ŞƏKLİ Nİ GÖNDƏRMƏYƏ BAS</h2>
     <button id="waBtn">Göndər</button>
   </div>
 </div>
 
-<!-- Firebase SDK -->
+<!-- Overlay Pul YÜKLƏ -->
+<div id="payOverlay" class="overlay">
+  <div class="overlayContent">
+    <h2>M10 077 543 50 53 ÖDƏNİŞ ET</h2>
+    <button id="closePayBtn">Bağla</button>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
@@ -156,75 +149,67 @@ const firebaseConfig = {
   projectId: "niceuc-e5986",
   storageBucket: "niceuc-e5986.firebasestorage.app",
   messagingSenderId: "242221260650",
-  appId: "1:242221260650:web:d140153a2167dcf13",
+  appId: "1:242221260650:web:d140153a2167c4738dcf13",
   measurementId: "G-YKKRHJKYNB"
 };
 
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.database();
-const storage = firebase.storage();
-let oldBalance = 0;
+const auth=firebase.auth(),db=firebase.database(),storage=firebase.storage();
+let oldBalance=0;
 
-// Google login
-function openLoginModal() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).then(result => saveUser(result.user)).catch(error=>alert(error.message));
+function openLoginModal(){
+  const provider=new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).then(result=>saveUser(result.user)).catch(e=>alert(e.message));
 }
-document.getElementById('loginBtn').addEventListener('click', openLoginModal);
+document.getElementById('loginBtn').addEventListener('click',openLoginModal);
 
-// Confetti
 function launchConfetti(){
   const container=document.getElementById('confettiContainer');
-  const count=50;
-  for(let i=0;i<count;i++){
-    const confetti=document.createElement('div');
-    confetti.textContent='🎊';
-    confetti.style.position='absolute';
-    confetti.style.fontSize=Math.random()*24+16+'px';
-    confetti.style.left=Math.random()*100+'%';
-    confetti.style.top='-5%';
-    confetti.style.opacity=Math.random();
-    confetti.style.transition='transform 5s linear, opacity 5s';
-    container.appendChild(confetti);
+  for(let i=0;i<50;i++){
+    const c=document.createElement('div');
+    c.textContent='🎊';
+    c.style.position='absolute';
+    c.style.fontSize=Math.random()*24+16+'px';
+    c.style.left=Math.random()*100+'%';
+    c.style.top='-5%';
+    c.style.opacity=Math.random();
+    c.style.transition='transform 5s linear, opacity 5s';
+    container.appendChild(c);
     const delay=Math.random()*1000;
-    setTimeout(()=>{
-      confetti.style.transform=`translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;
-      confetti.style.opacity=0;
-    },delay);
-    setTimeout(()=>container.removeChild(confetti),5100);
+    setTimeout(()=>{c.style.transform=`translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;c.style.opacity=0;},delay);
+    setTimeout(()=>container.removeChild(c),5100);
   }
 }
 
-// Save user
 function saveUser(user){
   document.getElementById('userInfo').textContent=`Salam, ${user.displayName} (${user.email})`;
-  const userBalanceRef=db.ref('balances/'+user.uid);
-  userBalanceRef.on('value', snapshot=>{
-    const balance = snapshot.val()||0;
-    document.getElementById('balance').textContent=parseFloat(balance).toFixed(2);
-    if(balance>oldBalance) launchConfetti();
-    oldBalance=balance;
+  const ref=db.ref('balances/'+user.uid);
+  ref.on('value',snap=>{
+    const b=snap.val()||0;
+    document.getElementById('balance').textContent=parseFloat(b).toFixed(2);
+    if(b>oldBalance) launchConfetti();
+    oldBalance=b;
   });
 }
-auth.onAuthStateChanged(user=>{if(user) saveUser(user);});
+auth.onAuthStateChanged(u=>{if(u) saveUser(u);});
 
-// Pul YÜKLƏ
-document.getElementById('payBtn').addEventListener('click', ()=>{alert('M10 077 543 50 53 ÖDƏNİŞ ET');});
+// 💲 PUL YÜKLƏ overlay
+const payBtn=document.getElementById('payBtn');
+const payOverlay=document.getElementById('payOverlay');
+const closePayBtn=document.getElementById('closePayBtn');
+payBtn.addEventListener('click',()=>{payOverlay.style.display='grid';});
+closePayBtn.addEventListener('click',()=>{payOverlay.style.display='none';});
 
-// ÇEK overlay
-const cekBtn = document.getElementById('cekBtn');
-const cekOverlay = document.getElementById('cekOverlay');
-const waBtn = document.getElementById('waBtn');
-
-cekBtn.addEventListener('click', ()=>{cekOverlay.style.display='grid';});
-cekOverlay.addEventListener('click', e=>{if(e.target===cekOverlay) cekOverlay.style.display='none';});
-
-// WhatsApp göndərmə
-waBtn.addEventListener('click', ()=>{
+// ÇEK overlay və WhatsApp
+const cekBtn=document.getElementById('cekBtn');
+const cekOverlay=document.getElementById('cekOverlay');
+const waBtn=document.getElementById('waBtn');
+cekBtn.addEventListener('click',()=>{cekOverlay.style.display='grid';});
+cekOverlay.addEventListener('click',e=>{if(e.target===cekOverlay) cekOverlay.style.display='none';});
+waBtn.addEventListener('click',()=>{
   const number='+9945132329857';
   const text=encodeURIComponent('ÇEKİ GÖNDƏRİRƏM');
-  window.open(`https://wa.me/${number}?text=${text}`, '_blank');
+  window.open(`https://wa.me/${number}?text=${text}`,'_blank');
   cekOverlay.style.display='none';
 });
 </script>
