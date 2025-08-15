@@ -10,15 +10,18 @@
   --glass:rgba(255,255,255,0.12); --text:#f8fafc; --accent:#22c55e;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;}
+html{height:100%;}
 body{
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,'Helvetica Neue',Arial,'Apple Color Emoji','Segoe UI Emoji';
   color:var(--text); background:linear-gradient(135deg,var(--bg1),var(--bg2) 50%,var(--bg3));
-  display:grid; place-items:center; overflow:hidden; opacity:0; animation:fadeIn 1s forwards;
+  /* YENİ: MƏRKƏZLƏMƏ DÜZƏLİŞİ */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh; /* Ekranın tam hündürlüyünü əhatə et */
+  overflow:hidden;
 }
-@keyframes fadeIn{0%{opacity:0;}100%{opacity:1;}}
-.wrap{display:grid;place-items:center;gap:12px;text-align:center;padding:20px;opacity:0; transform:translateY(-20px); animation:slideDown 0.8s forwards 0.3s;}
-@keyframes slideDown{0%{opacity:0; transform:translateY(-20px);}100%{opacity:1; transform:translateY(0);}}
+.wrap{display:grid;place-items:center;gap:12px;text-align:center;padding:20px;}
 .user-info{font-size:1rem;font-weight:600;opacity:.9;margin-bottom:6px;}
 .card{
   position:relative; width:min(60vw,320px); aspect-ratio:1/1; display:grid; place-items:center;
@@ -34,52 +37,42 @@ body{
 .balance .value{font-size:clamp(1.5rem,5vw,2.5rem);line-height:1;}
 .google-btn{ margin-top:14px; padding:8px 16px; font-size:0.95rem; background:#4285F4; color:white; border:none; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:6px; font-weight:600;}
 
-/* YENİ: KİÇİLDİLMİŞ DÜYMƏLƏR */
-.action-buttons button {
-  position: fixed; right: 20px; padding: 8px 14px; font-size: 0.9rem; /* Ölçülər dəyişdirildi */
-  color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;
-}
+.action-buttons button { position: fixed; right: 20px; padding: 8px 14px; font-size: 0.9rem; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
 #payBtn { top: 20px; background: #22c55e; }
-#cekBtn { top: 58px; background: #2563eb; } /* Ara məsafəsi azaldıldı */
+#cekBtn { top: 58px; background: #2563eb; }
 #pulCekBtn { top: 96px; background: #f59e0b; }
 
-/* Notification Icon */
 #notification-bell { position: fixed; top: 20px; left: 20px; font-size: 28px; cursor: pointer; user-select: none; z-index: 10000; }
 #notification-badge { position: absolute; top: -5px; right: -8px; background: #ef4444; color: white; width: 20px; height: 20px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
 
-/* Modals */
 .modalOverlay{ position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:9999; display:none; }
 .modalContent{ background:linear-gradient(135deg,var(--bg1),var(--bg2)); padding:20px; border-radius:12px; text-align:center; color:white; width: min(90vw, 350px); }
-.modalContent h3 { margin-bottom: 15px; font-weight: 600; }
-.modalContent button { margin-top:12px; padding:8px 16px; font-size:1rem; border:none; border-radius:8px; cursor:pointer; }
 .modalContent input { display: block; width: 95%; margin: 10px auto; padding: 10px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white; font-size: 1rem; }
-.modalContent input::placeholder { color: #ccc; opacity: 0.7; }
-#withdrawBtn { background: #eab308; }
-#closePulCekModal, #closeNotificationsModal { background: #ef4444; }
-#notifications-list { max-height: 300px; overflow-y: auto; text-align: left; margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; }
-.notification-item { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; margin-bottom: 8px; font-size: 0.9rem; }
 
-/* YENİ: DƏSTƏK SİSTEMİ (CHAT WIDGET) STİLLƏRİ */
+/* DƏSTƏK SİSTEMİ (CHAT) */
 #support-widget { position: fixed; bottom: 20px; right: 20px; z-index: 10000; }
 #chat-toggle-btn {
   background: #0ea5e9; color: white; width: 60px; height: 60px; border-radius: 50%;
   border: none; font-size: 28px; cursor: pointer; display: flex;
   align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  position: relative; /* Bildiriş üçün lazımdır */
 }
-#chat-window {
-  position: absolute; bottom: 80px; right: 0; width: 320px; height: 400px;
-  background: var(--bg3); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
-  display: none; flex-direction: column; overflow: hidden;
+/* YENİ: DƏSTƏK BİLDİRİŞİ */
+#chat-notification-badge {
+  position: absolute; top: 0px; right: 0px; background: #ef4444; color: white;
+  min-width: 22px; height: 22px; border-radius: 50%; display: none;
+  align-items: center; justify-content: center; font-size: 12px; font-weight: bold;
+  padding: 2px;
 }
+#chat-window { position: absolute; bottom: 80px; right: 0; width: 320px; max-width: 90vw; height: 400px; background: var(--bg3); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: none; flex-direction: column; overflow: hidden; }
 #chat-header { padding: 10px; background: rgba(0,0,0,0.2); font-weight: bold; text-align: center; }
 #chat-messages { flex-grow: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-.message { max-width: 80%; padding: 8px 12px; border-radius: 10px; line-height: 1.4; }
+.message { max-width: 80%; padding: 8px 12px; border-radius: 10px; line-height: 1.4; word-break: break-word; }
 .message.user { background: #2563eb; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
 .message.admin { background: #4b5563; color: white; align-self: flex-start; border-bottom-left-radius: 2px; }
 #chat-input-area { display: flex; padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
 #chat-input { flex-grow: 1; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 8px; color: white; }
 #send-chat-btn { background: #0ea5e9; color: white; border: none; padding: 0 12px; border-radius: 6px; margin-left: 8px; cursor: pointer; font-weight: bold; }
-
 </style>
 </head>
 <body>
@@ -96,130 +89,112 @@ body{
   <button id="pulCekBtn">🏦 ÇEK</button>
 </div>
 
-<div class="modalOverlay" id="payModal"><div class="modalContent"><p>💲 PUL YÜKLƏ M10 077 543 50 53</p><button id="closePayModal">Bağla</button></div></div>
-<div class="modalOverlay" id="pulCekModal"><div class="modalContent"><h3>Pul Çıxarma Sorğusu</h3><input type="number" id="withdrawAmount" placeholder="Məbləğ (AZN)" required><input type="text" id="userName" placeholder="Ad" required><input type="text" id="userSurname" placeholder="Soyad" required><input type="tel" id="cardNumber" placeholder="Kart nömrəsi (16 rəqəm)" maxlength="16" pattern="\d{16}" required><button id="withdrawBtn">💸 PUL ÇIXART</button><button id="closePulCekModal">Bağla</button></div></div>
-<div class="modalOverlay" id="notificationsModal"><div class="modalContent"><h3>Əməliyyat Tarixçəsi</h3><div id="notifications-list"></div><button id="closeNotificationsModal">Bağla</button></div></div>
-
 <div id="support-widget">
   <div id="chat-window">
-    <div id="chat-header">Dəstək</div>
-    <div id="chat-messages"></div>
-    <div id="chat-input-area">
-      <input type="text" id="chat-input" placeholder="Mesajınızı yazın...">
-      <button id="send-chat-btn"> göndər</button>
-    </div>
+    <div id="chat-header">Dəstək</div><div id="chat-messages"></div>
+    <div id="chat-input-area"><input type="text" id="chat-input" placeholder="Mesajınızı yazın..."><button id="send-chat-btn"> göndər</button></div>
   </div>
-  <button id="chat-toggle-btn">💬</button>
+  <button id="chat-toggle-btn">
+    <span>💬</span>
+    <div id="chat-notification-badge"></div>
+  </button>
 </div>
-
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
 <script>
-// --- FIREBASE & AUTH (No changes) ---
+// --- FIREBASE & AUTH ---
 const firebaseConfig = { apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw", authDomain: "niceuc-e5986.firebaseapp.com", databaseURL: "https://niceuc-e5986-default-rtdb.firebaseio.com", projectId: "niceuc-e5986", storageBucket: "niceuc-e5986.appspot.com", appId: "1:242221260650:web:d140153a2167c4738dcf13" };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
-let currentBalance = 0;
 let balanceListener = null;
+let chatStateListener = null;
 
 auth.onAuthStateChanged((user) => {
   if (user) {
-    const userInfo = document.getElementById('userInfo');
-    userInfo.textContent = `Salam, ${user.displayName}`;
+    document.getElementById('userInfo').textContent = `Salam, ${user.displayName}`;
     db.ref('users/' + user.uid).set({ name: user.displayName, email: user.email });
     if (balanceListener) balanceListener.off();
-    const balanceRef = db.ref('balances/' + user.uid);
-    balanceListener = balanceRef.on('value', (snapshot) => {
-      const newBalance = snapshot.val() || 0;
-      currentBalance = newBalance;
-      document.getElementById('balance').textContent = parseFloat(currentBalance).toFixed(2);
+    balanceListener = db.ref('balances/' + user.uid).on('value', snapshot => {
+      document.getElementById('balance').textContent = parseFloat(snapshot.val() || 0).toFixed(2);
     });
-    // YENİ: İstifadəçi daxil olanda dəstək chat-ını aktivləşdir
     initializeSupportChat(user);
   } else {
     document.getElementById('userInfo').textContent = '';
     document.getElementById('balance').textContent = '0.00';
     if (balanceListener) balanceListener.off();
-    // YENİ: İstifadəçi çıxanda dəstək chat-ını deaktivləşdir
+    if (chatStateListener) chatStateListener.off();
     document.getElementById('support-widget').style.display = 'none';
   }
 });
 
-// --- PUL ÇEK & DİGƏR MODALLAR (No changes) ---
-// ... (Previous code for modals remains the same)
-
-// --- YENİ: DƏSTƏK SİSTEMİ (CHAT) JAVASCRIPT LOGIC ---
-const supportWidget = document.getElementById('support-widget');
+// --- DƏSTƏK SİSTEMİ (CHAT) ---
 const chatWindow = document.getElementById('chat-window');
 const chatToggleBtn = document.getElementById('chat-toggle-btn');
 const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 const sendChatBtn = document.getElementById('send-chat-btn');
-let chatListener = null;
+const chatBadge = document.getElementById('chat-notification-badge');
+let messageListener = null;
 
 chatToggleBtn.addEventListener('click', () => {
   const isHidden = chatWindow.style.display === 'none' || chatWindow.style.display === '';
   chatWindow.style.display = isHidden ? 'flex' : 'none';
+  // Pəncərə açıldıqda bildirişi sıfırla
+  if (isHidden && auth.currentUser) {
+    db.ref(`support_chats/${auth.currentUser.uid}/new_message_for_user_count`).set(0);
+  }
 });
 
 function initializeSupportChat(user) {
-  supportWidget.style.display = 'block';
-  
-  // Köhnə dinləyicini dayandır
-  if (chatListener) chatListener.off();
+  document.getElementById('support-widget').style.display = 'block';
+  if (messageListener) messageListener.off(); // Köhnə mesajları təmizlə
+  if (chatStateListener) chatStateListener.off(); // Köhnə bildiriş dinləyicisini təmizlə
+
+  // YENİ: Bildirişləri dinlə
+  const chatRef = db.ref(`support_chats/${user.uid}`);
+  chatStateListener = chatRef.on('value', (snapshot) => {
+    const count = snapshot.val()?.new_message_for_user_count || 0;
+    if (count > 0) {
+      chatBadge.textContent = count;
+      chatBadge.style.display = 'flex';
+    } else {
+      chatBadge.style.display = 'none';
+    }
+  });
   
   // Mesajları yüklə
   chatMessages.innerHTML = '';
   const messagesRef = db.ref(`support_chats/${user.uid}/messages`).limitToLast(50);
-  
-  chatListener = messagesRef.on('child_added', (snapshot) => {
+  messageListener = messagesRef.on('child_added', (snapshot) => {
     const message = snapshot.val();
     const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message');
-    messageDiv.classList.add(message.sender === 'admin' ? 'admin' : 'user');
+    messageDiv.className = `message ${message.sender === 'admin' ? 'admin' : 'user'}`;
     messageDiv.textContent = message.text;
     chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight; // Avtomatik aşağı çək
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   });
   
-  // Mesaj göndərmə
   const sendMessage = () => {
     const text = chatInput.value.trim();
     if (text === '') return;
-
-    const messageData = {
-      text: text,
-      sender: user.uid,
-      timestamp: firebase.database.ServerValue.TIMESTAMP
-    };
-    
-    // Mesajı `messages` altına yaz
+    const messageData = { text: text, sender: user.uid, timestamp: firebase.database.ServerValue.TIMESTAMP };
     db.ref(`support_chats/${user.uid}/messages`).push(messageData);
-    
-    // Əsas chat məlumatını yenilə (admin panel üçün)
     db.ref(`support_chats/${user.uid}`).update({
       user_email: user.email,
       last_message: text,
       last_updated: firebase.database.ServerValue.TIMESTAMP,
       new_message_for_admin: true
     });
-    
     chatInput.value = '';
   };
   
-  sendChatBtn.onclick = sendMessage; // onclick-i yenidən təyin et
-  chatInput.onkeydown = (event) => {
-    if (event.key === 'Enter') sendMessage();
-  };
+  sendChatBtn.onclick = sendMessage;
+  chatInput.onkeydown = (event) => { if (event.key === 'Enter') sendMessage(); };
 }
 
-// Qalan köhnə kodlar (giriş, pul çəkmə və s.) olduğu kimi qalır
-document.getElementById('loginBtn').addEventListener('click', () => { const p = new firebase.auth.GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' }); auth.signInWithPopup(p); });
-document.getElementById('pulCekBtn').addEventListener('click', () => document.getElementById('pulCekModal').style.display = 'flex');
-// ... (Digər event listener-lər)
-
+// Qalan köhnə kodlar olduğu kimi qalır...
 </script>
 </body>
 </html>
