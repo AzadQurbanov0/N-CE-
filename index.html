@@ -1,248 +1,240 @@
-<!DOCTYPE html>
-<html lang="az">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Para Çuvalı və Google Giriş</title>
-<style>
-:root{
-  --bg1:#0f0c29;
-  --bg2:#302b63;
-  --bg3:#24243e;
-  --card:rgba(255,255,255,0.06);
-  --glass:rgba(255,255,255,0.12);
-  --text:#f8fafc;
-  --accent:#22c55e;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;}
-body{
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,'Helvetica Neue',Arial,'Apple Color Emoji','Segoe UI Emoji';
-  color:var(--text);
-  background:linear-gradient(135deg,var(--bg1),var(--bg2) 50%,var(--bg3));
-  display:grid;
-  place-items:center;
-  overflow:hidden;
-  opacity:0;
-  animation:fadeIn 1s forwards;
-}
-@keyframes fadeIn{0%{opacity:0;}100%{opacity:1;}}
-
-.wrap{display:grid;place-items:center;gap:12px;text-align:center;padding:20px;opacity:0; transform:translateY(-20px); animation:slideDown 0.8s forwards 0.3s;}
+<!DOCTYPE html>  <html lang="az">  
+<head>  
+<meta charset="UTF-8">  
+<meta name="viewport" content="width=device-width, initial-scale=1">  
+<title>Para Çuvalı və Google Giriş</title>  
+<style>  
+:root{  
+  --bg1:#0f0c29;  
+  --bg2:#302b63;  
+  --bg3:#24243e;  
+  --card:rgba(255,255,255,0.06);  
+  --glass:rgba(255,255,255,0.12);  
+  --text:#f8fafc;  
+  --accent:#22c55e;  
+}  
+*{box-sizing:border-box;margin:0;padding:0;}  
+html,body{height:100%;}  
+body{  
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,'Helvetica Neue',Arial,'Apple Color Emoji','Segoe UI Emoji';  
+  color:var(--text);  
+  background:linear-gradient(135deg,var(--bg1),var(--bg2) 50%,var(--bg3));  
+  display:grid;  
+  place-items:center;  
+  overflow:hidden;  
+  opacity:0;  
+  animation:fadeIn 1s forwards;  
+}  
+@keyframes fadeIn{0%{opacity:0;}100%{opacity:1;}}  .wrap{display:grid;place-items:center;gap:12px;text-align:center;padding:20px;opacity:0; transform:translateY(-20px); animation:slideDown 0.8s forwards 0.3s;}
 @keyframes slideDown{0%{opacity:0; transform:translateY(-20px);}100%{opacity:1; transform:translateY(0);}}
 
 .user-info{font-size:1rem;font-weight:600;opacity:.9;margin-bottom:6px;}
 .card{
-  position:relative;
-  width:min(60vw,320px);
-  aspect-ratio:1/1;
-  display:grid;
-  place-items:center;
-  background: radial-gradient(60% 60% at 50% 30%,var(--glass),transparent 70%),var(--card);
-  border:1px solid rgba(255,255,255,0.14);
-  border-radius:24px;
-  box-shadow:0 15px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
-  backdrop-filter:blur(6px);
+position:relative;
+width:min(60vw,320px);
+aspect-ratio:1/1;
+display:grid;
+place-items:center;
+background: radial-gradient(60% 60% at 50% 30%,var(--glass),transparent 70%),var(--card);
+border:1px solid rgba(255,255,255,0.14);
+border-radius:24px;
+box-shadow:0 15px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+backdrop-filter:blur(6px);
 }
 .bag{font-size:clamp(5rem,18vw,12rem);filter:drop-shadow(0 8px 15px rgba(0,0,0,0.35));user-select:none;animation:float 5s ease-in-out infinite;}
 .balance{margin-top:10px;display:grid;place-items:center;font-weight:700;letter-spacing:1px;text-shadow:0 2px 5px rgba(0,0,0,0.5);}
 .balance .symbol{font-size:clamp(1rem,2.5vw,1.5rem);opacity:.9;margin-right:4px;}
 .balance .value{font-size:clamp(1.5rem,5vw,2.5rem);line-height:1;}
 .google-btn{
-  margin-top:14px;
-  padding:8px 16px;
-  font-size:0.95rem;
-  background:#4285F4;
-  color:white;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  gap:6px;
-  font-weight:600;
+margin-top:14px;
+padding:8px 16px;
+font-size:0.95rem;
+background:#4285F4;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+display:flex;
+align-items:center;
+gap:6px;
+font-weight:600;
 }
 .glow{position:absolute;inset:-30%;pointer-events:none;background:radial-gradient(40% 35% at 50% 10%, rgba(34,197,94,.25), transparent 60%),radial-gradient(30% 30% at 80% 70%, rgba(99,102,241,.18), transparent 60%);filter:blur(30px);}
 #confettiContainer{position:fixed;top:0;left:0;width:100%;height:0;pointer-events:none;overflow:visible;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
 #payBtn{
-  position:fixed;
-  top:20px;
-  right:20px;
-  padding:10px 20px;
-  font-size:1rem;
-  background:#22c55e;
-  color:white;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:600;
+position:fixed;
+top:20px;
+right:20px;
+padding:10px 20px;
+font-size:1rem;
+background:#22c55e;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+font-weight:600;
 }
 #cekBtn{
-  position:fixed;
-  top:64px;
-  right:20px;
-  padding:10px 20px;
-  font-size:1rem;
-  background:#2563eb;
-  color:white;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:600;
+position:fixed;
+top:64px;
+right:20px;
+padding:10px 20px;
+font-size:1rem;
+background:#2563eb;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+font-weight:600;
 }
 #uploadInput{display:none;}
 
 /* 💲 PUL YÜKLƏ modal */
 .modalOverlay{
-  position:fixed;
-  top:0; left:0; width:100%; height:100%;
-  background:rgba(0,0,0,0.6);
-  display:flex; align-items:center; justify-content:center;
-  z-index:9999; display:none;
+position:fixed;
+top:0; left:0; width:100%; height:100%;
+background:rgba(0,0,0,0.6);
+display:flex; align-items:center; justify-content:center;
+z-index:9999; display:none;
 }
 .modalContent{
-  background:linear-gradient(135deg,var(--bg1),var(--bg2));
-  padding:20px; border-radius:12px; text-align:center; color:white;
+background:linear-gradient(135deg,var(--bg1),var(--bg2));
+padding:20px; border-radius:12px; text-align:center; color:white;
 }
 .modalContent button{
-  margin-top:12px; padding:8px 16px; font-size:1rem; border:none; border-radius:8px; cursor:pointer; background:#22c55e; color:white;
+margin-top:12px; padding:8px 16px; font-size:1rem; border:none; border-radius:8px; cursor:pointer; background:#22c55e; color:white;
 }
 
 /* 📷 ÇEK modal */
 .cekModalOverlay{
-  position:fixed;
-  top:0; left:0; width:100%; height:100%;
-  background:rgba(0,0,0,0.6);
-  display:flex; align-items:center; justify-content:center;
-  z-index:9999; display:none;
+position:fixed;
+top:0; left:0; width:100%; height:100%;
+background:rgba(0,0,0,0.6);
+display:flex; align-items:center; justify-content:center;
+z-index:9999; display:none;
 }
 .cekModalContent{
-  background:linear-gradient(135deg,var(--bg1),var(--bg2));
-  padding:20px; border-radius:12px; text-align:center; color:white;
+background:linear-gradient(135deg,var(--bg1),var(--bg2));
+padding:20px; border-radius:12px; text-align:center; color:white;
 }
 .cekModalContent button{
-  margin-top:12px; padding:8px 16px; font-size:1rem; border:none; border-radius:8px; cursor:pointer; background:#2563eb; color:white;
-}
-.cekModalContent input{
-  padding:8px 10px;
-  width:80%;
-  margin-top:10px;
-  border-radius:6px;
-  border:none;
+margin-top:12px; padding:8px 16px; font-size:1rem; border:none; border-radius:8px; cursor:pointer; background:#2563eb; color:white;
 }
 </style>
-</head>
-<body>
-<div class="wrap">
-<div id="userInfo" class="user-info"></div>
-<div class="card">
-  <div class="glow"></div>
-  <div class="bag">💰</div>
-  <div class="balance"><span class="symbol">AZN</span><span id="balance" class="value">0.00</span></div>
-</div>
-<button class="google-btn" id="loginBtn">
-  🌐 Giriş
-</button>
-</div>
 
-<div id="confettiContainer"></div>
-
-<button id="payBtn">💲 PUL YÜKLƏ</button>
-<button id="cekBtn">🏦 PULU ÇEK</button>
+</head>  
+<body>  
+<div class="wrap">  
+<div id="userInfo" class="user-info"></div>  
+<div class="card">  
+  <div class="glow"></div>  
+  <div class="bag">💰</div>  
+  <div class="balance"><span class="symbol">AZN</span><span id="balance" class="value">0.00</span></div>  
+</div>  
+<button class="google-btn" id="loginBtn">  
+  🌐 Giriş  
+</button>  
+</div>  <div id="confettiContainer"></div>  <button id="payBtn">💲 PUL YÜKLƏ</button>
+<button id="cekBtn">📷 ÇEK</button>
 <input id="uploadInput" type="file" accept="image/*" capture="environment">
 
-<!-- 💲 PUL YÜKLƏ modal -->
-<div class="modalOverlay" id="payModal">
-  <div class="modalContent">
-    <p>💲 PUL YÜKLƏ M10 077 543 50 53</p>
-    <button id="closePayModal">Bağla</button>
-  </div>
-</div>
-
-<!-- 🏦 PULU ÇEK modal -->
-<div class="cekModalOverlay" id="cekModal">
-  <div class="cekModalContent">
-    <p>Adınızı, Soyadınızı və Kartın son 8 rəqəmini daxil edin:</p>
-    <input type="text" id="fullName" placeholder="Ad Soyad">
-    <input type="text" id="cardLast8" placeholder="Kartın son 8 rəqəmi" maxlength="8">
-    <button id="sendCekBtn">GÖNDER</button>
-    <button id="closeCekModal">Bağla</button>
-  </div>
-</div>
-
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
-
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw",
-  authDomain: "niceuc-e5986.firebaseapp.com",
-  databaseURL: "https://niceuc-e5986-default-rtdb.firebaseio.com",
-  projectId: "niceuc-e5986",
-  storageBucket: "niceuc-e5986.firebasestorage.app",
-  messagingSenderId: "242221260650",
-  appId: "1:242221260650:web:d140153a2167c4738dcf13",
-  measurementId: "G-YKKRHJKYNB"
-};
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.database();
-const storage = firebase.storage();
-
-let oldBalance = 0;
-
-function openLoginModal() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider)
-      .then(result => saveUser(result.user))
-      .catch(error => alert(error.message));
-}
-
-document.getElementById('loginBtn').addEventListener('click', openLoginModal);
-
-function launchConfetti(){
-  const container = document.getElementById('confettiContainer');
-  const count = 50;
-  for(let i=0;i<count;i++){
-    const confetti = document.createElement('div');
-    confetti.textContent = '💸';
-    confetti.style.position = 'absolute';
-    confetti.style.fontSize = Math.random()*24+16+'px';
-    confetti.style.left = Math.random()*100+'%';
-    confetti.style.top = '-5%';
-    confetti.style.opacity = Math.random();
-    confetti.style.transition = 'transform 8s linear, opacity 5s';
-    container.appendChild(confetti);
-    const delay = Math.random()*3000;
-    setTimeout(()=>{
-      confetti.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;
-      confetti.style.opacity = 0;
-    }, delay);
-    setTimeout(()=>container.removeChild(confetti), 5100);
-  }
-}
-
-function saveUser(user){
-  const userInfo = document.getElementById('userInfo');
-  userInfo.textContent = `Salam, ${user.displayName} (${user.email})`;
-  const userBalanceRef = db.ref('balances/' + user.uid);
-  userBalanceRef.on('value', (snapshot) => {
-    const balance = snapshot.val() || 0;
-    document.getElementById('balance').textContent = parseFloat(balance).toFixed(2);
-    if(balance > oldBalance){
-      launchConfetti();
-    }
-    oldBalance = balance;
-  });
-}
-
-auth.onAuthStateChanged((user) => { if(user){ saveUser(user); } });
-
-const payBtn = document.getElementById('payBtn');
-const payModal = document.getElementById('payModal');
-const closePayModal = document.getElementById('closePayModal');
-payBtn.addEventListener('click',()=>{
+<!-- 💲 PUL YÜKLƏ modal -->  <div class="modalOverlay" id="payModal">  
+  <div class="modalContent">  
+    <p>💲 PUL YÜKLƏ M10 077 543 50 53</p>  
+    <button id="closePayModal">Bağla</button>  
+  </div>  
+</div>  <!-- 📷 ÇEK modal -->  <div class="cekModalOverlay" id="cekModal">  
+  <div class="cekModalContent">  
+    <p>ÇƏKİN ŞƏKLİ Nİ GÖNDƏRMƏYƏ BAS</p>  
+    <button id="sendCekBtn">GÖNDER</button>  
+    <button id="closeCekModal">Bağla</button>  
+  </div>  
+</div>  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>  <script>  
+const firebaseConfig = {  
+  apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw",  
+  authDomain: "niceuc-e5986.firebaseapp.com",  
+  databaseURL: "https://niceuc-e5986-default-rtdb.firebaseio.com",  
+  projectId: "niceuc-e5986",  
+  storageBucket: "niceuc-e5986.firebasestorage.app",  
+  messagingSenderId: "242221260650",  
+  appId: "1:242221260650:web:d140153a2167c4738dcf13",  
+  measurementId: "G-YKKRHJKYNB"  
+};  
+  
+firebase.initializeApp(firebaseConfig);  
+const auth = firebase.auth();  
+const db = firebase.database();  
+const storage = firebase.storage();  
+  
+let oldBalance = 0;  
+  
+function openLoginModal() {  
+  const provider = new firebase.auth.GoogleAuthProvider();  
+  auth.signInWithPopup(provider)  
+      .then(result => saveUser(result.user))  
+      .catch(error => alert(error.message));  
+}  
+  
+document.getElementById('loginBtn').addEventListener('click', openLoginModal);  
+  
+function launchConfetti(){  
+  const container = document.getElementById('confettiContainer');  
+  const count = 50;  
+  for(let i=0;i<count;i++){  
+    const confetti = document.createElement('div');  
+    confetti.textContent = '💸';  
+    confetti.style.position = 'absolute';  
+    confetti.style.fontSize = Math.random()*24+16+'px';  
+    confetti.style.left = Math.random()*100+'%';  
+    confetti.style.top = '-5%';  
+    confetti.style.opacity = Math.random();  
+    confetti.style.transition = 'transform 8s linear, opacity 5s';  
+    container.appendChild(confetti);  
+    const delay = Math.random()*3000;  
+    setTimeout(()=>{  
+      confetti.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;  
+      confetti.style.opacity = 0;  
+    }, delay);  
+    setTimeout(()=>container.removeChild(confetti), 5100);  
+  }  
+}  
+  
+function saveUser(user){  
+  const userInfo = document.getElementById('userInfo');  
+  userInfo.textContent = `Salam, ${user.displayName} (${user.email})`;  
+  const userBalanceRef = db.ref('balances/' + user.uid);  
+  userBalanceRef.on('value', (snapshot) => {  
+    const balance = snapshot.val() || 0;  
+    document.getElementById('balance').textContent = parseFloat(balance).toFixed(2);  
+    if(balance > oldBalance){  
+      launchConfetti();  
+    }  
+    oldBalance = balance;  
+  });  
+}  
+  
+auth.onAuthStateChanged((user) => { if(user){ saveUser(user); } });  
+  
+const payBtn = document.getElementById('payBtn');  
+const payModal = document.getElementById('payModal');  
+const closePayModal = document.getElementById('closePayModal');  
+payBtn.addEventListener('click',()=>{ payModal.style.display='flex'; });  
+closePayModal.addEventListener('click',()=>{ payModal.style.display='none'; });  
+  
+const cekBtn = document.getElementById('cekBtn');  
+const cekModal = document.getElementById('cekModal');  
+const closeCekModal = document.getElementById('closeCekModal');  
+const sendCekBtn = document.getElementById('sendCekBtn');  
+  
+cekBtn.addEventListener('click',()=>{ cekModal.style.display='flex'; });  
+closeCekModal.addEventListener('click',()=>{ cekModal.style.display='none'; });  
+  
+sendCekBtn.addEventListener('click',()=>{  
+  const phone = '+994513239857';  
+  const message = encodeURIComponent('ÇEKİ GÖNDƏRİRƏM');  
+  window.open(`https://wa.me/${phone}?text=${message}`, '_blank');  
+  cekModal.style.display='none';  
+});  
+</script>  </body>  
+</html>
