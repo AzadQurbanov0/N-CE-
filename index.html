@@ -60,6 +60,7 @@ body{
 .glow{position:absolute;inset:-30%;pointer-events:none;background:radial-gradient(40% 35% at 50% 10%, rgba(34,197,94,.25), transparent 60%),radial-gradient(30% 30% at 80% 70%, rgba(99,102,241,.18), transparent 60%);filter:blur(30px);}
 #confettiContainer{position:fixed;top:0;left:0;width:100%;height:0;pointer-events:none;overflow:visible;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+/* Pul YÜKLƏ */
 #payBtn{
   position:fixed;
   top:20px;
@@ -73,10 +74,10 @@ body{
   cursor:pointer;
   font-weight:600;
 }
-/* ÇEK butonu (payBtn-in altında) */
+/* ÇEK */
 #cekBtn{
   position:fixed;
-  top:64px;       /* payBtn-dən bir az aşağı */
+  top:64px;
   right:20px;
   padding:10px 20px;
   font-size:1rem;
@@ -88,13 +89,13 @@ body{
   font-weight:600;
 }
 #uploadInput{display:none;}
-/* Pəncərə overlay */
+
+/* Overlay pəncərə */
 #cekOverlay{
   display:none;
   position:fixed;
   inset:0;
   background:rgba(0,0,0,0.7);
-  display:grid;
   place-items:center;
   z-index:1000;
 }
@@ -104,11 +105,17 @@ body{
   border-radius:12px;
   text-align:center;
   color:white;
-  max-width:280px;
-  width:90%;
 }
-#cekContent h2{margin-bottom:20px;}
-#cekContent button{margin-top:15px;background:#22c55e;color:white;padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;}
+#waBtn{
+  margin-top:12px;
+  padding:8px 16px;
+  background:#25d366;
+  color:white;
+  border:none;
+  border-radius:6px;
+  font-weight:600;
+  cursor:pointer;
+}
 </style>
 </head>
 <body>
@@ -127,7 +134,7 @@ body{
 <button id="cekBtn">📷 ÇEK</button>
 <input id="uploadInput" type="file" accept="image/*" capture="environment">
 
-<!-- ÇEK overlay -->
+<!-- Overlay -->
 <div id="cekOverlay">
   <div id="cekContent">
     <h2>ÇƏKİN ŞƏKLİ Nİ GÖNDƏRMƏYƏ BAS</h2>
@@ -149,20 +156,22 @@ const firebaseConfig = {
   projectId: "niceuc-e5986",
   storageBucket: "niceuc-e5986.firebasestorage.app",
   messagingSenderId: "242221260650",
-  appId: "1:242221260650:web:d140153a2167c4738dcf13",
+  appId: "1:242221260650:web:d140153a2167dcf13",
   measurementId: "G-YKKRHJKYNB"
 };
+
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth();
-const db=firebase.database();
-const storage=firebase.storage();
-let oldBalance=0;
+const auth = firebase.auth();
+const db = firebase.database();
+const storage = firebase.storage();
+let oldBalance = 0;
 
 // Google login
-document.getElementById('loginBtn').addEventListener('click', ()=>{
-  const provider=new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).then(res=>saveUser(res.user)).catch(e=>alert(e.message));
-});
+function openLoginModal() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).then(result => saveUser(result.user)).catch(error=>alert(error.message));
+}
+document.getElementById('loginBtn').addEventListener('click', openLoginModal);
 
 // Confetti
 function launchConfetti(){
@@ -187,12 +196,12 @@ function launchConfetti(){
   }
 }
 
-// User save & balance
+// Save user
 function saveUser(user){
   document.getElementById('userInfo').textContent=`Salam, ${user.displayName} (${user.email})`;
   const userBalanceRef=db.ref('balances/'+user.uid);
   userBalanceRef.on('value', snapshot=>{
-    const balance=snapshot.val()||0;
+    const balance = snapshot.val()||0;
     document.getElementById('balance').textContent=parseFloat(balance).toFixed(2);
     if(balance>oldBalance) launchConfetti();
     oldBalance=balance;
@@ -200,18 +209,23 @@ function saveUser(user){
 }
 auth.onAuthStateChanged(user=>{if(user) saveUser(user);});
 
-// PUL YÜKLƏ
+// Pul YÜKLƏ
 document.getElementById('payBtn').addEventListener('click', ()=>{alert('M10 077 543 50 53 ÖDƏNİŞ ET');});
 
 // ÇEK overlay
-const cekBtn=document.getElementById('cekBtn');
-const cekOverlay=document.getElementById('cekOverlay');
-const waBtn=document.getElementById('waBtn');
+const cekBtn = document.getElementById('cekBtn');
+const cekOverlay = document.getElementById('cekOverlay');
+const waBtn = document.getElementById('waBtn');
+
 cekBtn.addEventListener('click', ()=>{cekOverlay.style.display='grid';});
+cekOverlay.addEventListener('click', e=>{if(e.target===cekOverlay) cekOverlay.style.display='none';});
+
+// WhatsApp göndərmə
 waBtn.addEventListener('click', ()=>{
-  const phone='+9945132329857';
-  const text='ÇEKİ GÖNDƏRİRƏM';
-  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`);
+  const number='+9945132329857';
+  const text=encodeURIComponent('ÇEKİ GÖNDƏRİRƏM');
+  window.open(`https://wa.me/${number}?text=${text}`, '_blank');
+  cekOverlay.style.display='none';
 });
 </script>
 </body>
