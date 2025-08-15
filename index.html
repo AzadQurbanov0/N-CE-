@@ -40,7 +40,7 @@ body{
 #notification-badge { position: absolute; top: -5px; right: -8px; background: #ef4444; color: white; width: 20px; height: 20px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
 .modalOverlay{ position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:9999; display:none; }
 .modalContent{ background:linear-gradient(135deg,var(--bg1),var(--bg2)); padding:20px; border-radius:12px; text-align:center; color:white; width: min(90vw, 350px); }
-.modalContent input { display: block; width: 95%; margin: 10px auto; padding: 10px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white; font-size: 1rem; }
+.modalContent input { display: block; width: 95%; margin: 10px auto; padding: 10px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,251); color: white; font-size: 1rem; }
 .modalContent button { margin-top:12px; padding:8px 16px; font-size:1rem; border:none; border-radius:8px; cursor:pointer; }
 #notifications-list { max-height: 400px; overflow-y: auto; text-align: left; margin-top: 15px; padding: 5px; background: rgba(0,0,0,0.2); border-radius: 8px; }
 .notification-item { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; margin-bottom: 8px; font-size: 0.9rem; border-left: 4px solid #555; }
@@ -74,79 +74,227 @@ body{
 <div class="modalOverlay" id="cekModal"><div class="modalContent"><p>ÇƏKİN ŞƏKLİNİ GÖNDƏRMƏYƏ BAS</p><button id="sendCekBtn">GÖNDƏR</button><button class="close-modal-btn">Bağla</button></div></div>
 <div class="modalOverlay" id="pulCekModal"><div class="modalContent"><h3>Pul Çıxarma Sorğusu</h3><input type="number" id="withdrawAmount" placeholder="Məbləğ (AZN)" required><input type="text" id="userName" placeholder="Ad" required><input type="text" id="userSurname" placeholder="Soyad" required><input type="tel" id="cardNumber" placeholder="Kart nömrəsi (16 rəqəm)" maxlength="16" required><button id="withdrawBtn">💸 PUL ÇIXART</button><button class="close-modal-btn">Bağla</button></div></div>
 <div class="modalOverlay" id="notificationsModal"><div class="modalContent"><h3>Əməliyyat Tarixçəsi</h3><div id="notifications-list"></div><button class="close-modal-btn">Bağla</button></div></div>
-<div id="support-widget"><div id="chat-window"><div id="chat-header">Dəstək</div><div id="chat-messages"></div><div id="chat-input-area"><input type="text" id="chat-input" placeholder="Mesajınızı yazın..."><button id="send-chat-btn"> göndər</button></div></div><button id="chat-toggle-btn"><span>💬</span><div id="chat-notification-badge" style="display:none;"></div></button></div>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
+<div id="support-widget"><div id="chat-window"><div id="chat-header">Dəstək</div><div id="chat-messages"></div><div id="chat-input-area"><input type="text" id="chat-input" placeholder="Mesajınızı yazın..."><button id="send-chat-btn"> göndər</button></div></div><button id="chat-toggle-btn"><span>💬</span><div id="chat-notification-badge" style="display:none;"></div></button></div><script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
 <script>
     const firebaseConfig = { apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw", authDomain: "niceuc-e5986.firebaseapp.com", databaseURL: "https://niceuc-e5986-default-rtdb.firebaseio.com", projectId: "niceuc-e5986", appId: "1:242221260650:web:d140153a2167c4738dcf13" };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
-    let currentBalance = 0, balanceListener = null, chatStateListener = null, messageListener = null;
+    
+    // Global dəyişənlər
+    let currentBalance = 0;
+    let balanceListener = null;
+    let chatStateListener = null;
+    let messageListener = null;
+
     auth.onAuthStateChanged(user => {
         const supportWidget = document.getElementById('support-widget');
         if (user) {
             document.getElementById('userInfo').textContent = `Salam, ${user.displayName}`;
-            db.ref('users/' + user.uid).set({ name: user.displayName, email: user.email });
+            db.ref('users/' + user.uid).set({ displayName: user.displayName, email: user.email }); // Düzəliş: Adı da yazaq
+            
+            // Köhnə listener-i dayandırırıq
             if (balanceListener) balanceListener.off();
-            balanceListener = db.ref('balances/' + user.uid).on('value', snapshot => { currentBalance = snapshot.val() || 0; document.getElementById('balance').textContent = parseFloat(currentBalance).toFixed(2); });
+
+            // === DÜZƏLDİLMİŞ BALANS HİSSƏSİ ===
+            balanceListener = db.ref('balances/' + user.uid).on('value', snapshot => {
+                const balanceData = snapshot.val();
+                let newBalance = 0; // Təhlükəsiz ilkin dəyər
+
+                // Yoxlayırıq: Gələn məlumat obyektdirsə və içində 'amount' varsa, onu götürürük
+                if (balanceData && typeof balanceData.amount === 'number') {
+                    newBalance = balanceData.amount;
+                } 
+                // Yoxlayırıq: Əgər gələn məlumat birbaşa rəqəmdirsə (köhnə datalar üçün)
+                else if (typeof balanceData === 'number') {
+                    newBalance = balanceData;
+                }
+
+                currentBalance = newBalance; // Global balansı yeniləyirik
+                document.getElementById('balance').textContent = newBalance.toFixed(2);
+            });
+            // === DÜZƏLİŞİN SONU ===
+
             supportWidget.style.display = 'block';
             initializeSupportChat(user);
+
         } else {
+            // İstifadəçi çıxış etdikdə məlumatları sıfırlayırıq
             document.getElementById('userInfo').textContent = '';
             document.getElementById('balance').textContent = '0.00';
+            currentBalance = 0;
             if (balanceListener) balanceListener.off();
             if (chatStateListener) chatStateListener.off();
+            if (messageListener) messageListener.off();
             supportWidget.style.display = 'none';
         }
     });
-    document.getElementById('loginBtn').addEventListener('click', () => { const provider = new firebase.auth.GoogleAuthProvider(); auth.signInWithPopup(provider).catch(error => alert(error.message)); });
+
+    document.getElementById('loginBtn').addEventListener('click', () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(error => alert(error.message));
+    });
+
     document.getElementById('payBtn').addEventListener('click', () => document.getElementById('payModal').style.display = 'flex');
     document.getElementById('cekBtn').addEventListener('click', () => document.getElementById('cekModal').style.display = 'flex');
     document.getElementById('pulCekBtn').addEventListener('click', () => document.getElementById('pulCekModal').style.display = 'flex');
-    document.querySelectorAll('.close-modal-btn').forEach(btn => btn.addEventListener('click', (e) => e.target.closest('.modalOverlay').style.display = 'none'));
-    document.getElementById('sendCekBtn').addEventListener('click', () => { window.open(`https://wa.me/+994513239857?text=${encodeURIComponent('ÇEKİ GÖNDƏRİRƏM')}`, '_blank'); document.getElementById('cekModal').style.display = 'none'; });
+
+    document.querySelectorAll('.close-modal-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.target.closest('.modalOverlay').style.display = 'none';
+        });
+    });
+
+    document.getElementById('sendCekBtn').addEventListener('click', () => {
+        window.open(`https://wa.me/+994513239857?text=${encodeURIComponent('ÇEKİ GÖNDƏRİRƏM')}`, '_blank');
+        document.getElementById('cekModal').style.display = 'none';
+    });
+    
     document.getElementById('notification-bell').addEventListener('click', () => {
         const user = auth.currentUser;
         if (!user) return alert('Tarixçəyə baxmaq üçün daxil olun.');
-        const modal = document.getElementById('notificationsModal'), list = document.getElementById('notifications-list');
+        
+        const modal = document.getElementById('notificationsModal');
+        const list = document.getElementById('notifications-list');
+        
         modal.style.display = 'flex';
         document.getElementById('notification-badge').style.display = 'none';
         list.innerHTML = '<p>Yüklənir...</p>';
+
         db.ref('withdrawals').orderByChild('uid').equalTo(user.uid).limitToLast(20).once('value', snapshot => {
-            if (!snapshot.exists()) { list.innerHTML = '<p>Heç bir əməliyyat tapılmadı.</p>'; return; }
-            list.innerHTML = ''; let items = []; snapshot.forEach(child => items.push(child.val()));
+            if (!snapshot.exists()) {
+                list.innerHTML = '<p>Heç bir əməliyyat tapılmadı.</p>';
+                return;
+            }
+            list.innerHTML = '';
+            let items = [];
+            snapshot.forEach(child => items.push(child.val()));
+
             items.reverse().forEach(data => {
-                const itemDiv = document.createElement('div'), reqData = data.requestData;
+                const itemDiv = document.createElement('div');
+                const reqData = data.requestData;
                 let statusText, statusClass;
-                switch (data.status) { case 'approved': statusText = 'Onaylandı'; statusClass = 'status-approved'; break; case 'rejected': statusText = 'Rədd edildi'; statusClass = 'status-rejected'; break; default: statusText = 'Gözləmədə'; statusClass = 'status-pending'; }
+
+                switch (data.status) {
+                    case 'approved': statusText = 'Onaylandı'; statusClass = 'status-approved'; break;
+                    case 'rejected': statusText = 'Rədd edildi'; statusClass = 'status-rejected'; break;
+                    default: statusText = 'Gözləmədə'; statusClass = 'status-pending';
+                }
+
                 itemDiv.className = `notification-item ${statusClass}`;
                 const maskedCardNumber = '**** ' + reqData.cardNumber.slice(-4);
-                itemDiv.innerHTML = `<div class="notification-item-header"><span class="notification-item-amount">${reqData.amount.toFixed(2)} AZN</span><span class="notification-item-status">${statusText}</span></div><div class="notification-item-body">Kart: ${maskedCardNumber}</div><div class="notification-item-footer">${new Date(data.createdAt).toLocaleString()}</div>`;
+                itemDiv.innerHTML = `<div class="notification-item-header"><span class="notification-item-amount">${parseFloat(reqData.amount).toFixed(2)} AZN</span><span class="notification-item-status">${statusText}</span></div><div class="notification-item-body">Kart: ${maskedCardNumber}</div><div class="notification-item-footer">${new Date(data.createdAt).toLocaleString()}</div>`;
                 list.appendChild(itemDiv);
             });
         });
     });
+
     document.getElementById('withdrawBtn').addEventListener('click', () => {
-        const user = auth.currentUser; if (!user) return alert('Zəhmət olmasa, daxil olun.');
-        const amount = parseFloat(document.getElementById('withdrawAmount').value), name = document.getElementById('userName').value, surname = document.getElementById('userSurname').value, card = document.getElementById('cardNumber').value;
-        if (!amount || !name || !surname || !card) return alert('Bütün xanaları doldurun.');
+        const user = auth.currentUser;
+        if (!user) return alert('Zəhmət olmasa, daxil olun.');
+
+        const amount = parseFloat(document.getElementById('withdrawAmount').value);
+        const name = document.getElementById('userName').value;
+        const surname = document.getElementById('userSurname').value;
+        const card = document.getElementById('cardNumber').value;
+
+        if (isNaN(amount) || amount <= 0 || !name || !surname || !card) return alert('Bütün xanaları düzgün doldurun.');
+        if (card.length !== 16 || isNaN(card)) return alert('Kart nömrəsi 16 rəqəmdən ibarət olmalıdır.');
+        
         if (amount > currentBalance) return alert('Balansınızda kifayət qədər vəsait yoxdur.');
-        const request = { uid: user.uid, userEmail: user.email, requestData: { name, surname, cardNumber: card, amount }, status: 'pending', createdAt: firebase.database.ServerValue.TIMESTAMP };
-        db.ref('withdrawals').push(request).then(() => { alert('Sorğunuz göndərildi və hazırda gözləmədədir.'); document.getElementById('notification-badge').style.display = 'flex'; document.getElementById('pulCekModal').style.display = 'none'; });
+
+        const request = {
+            uid: user.uid,
+            userEmail: user.email,
+            requestData: { name, surname, cardNumber: card, amount },
+            status: 'pending',
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        db.ref('withdrawals').push(request).then(() => {
+            alert('Sorğunuz göndərildi və hazırda gözləmədədir.');
+            document.getElementById('notification-badge').style.display = 'flex';
+            document.getElementById('pulCekModal').style.display = 'none';
+            
+            // Formu təmizləyək
+            document.getElementById('withdrawAmount').value = '';
+            document.getElementById('userName').value = '';
+            document.getElementById('userSurname').value = '';
+            document.getElementById('cardNumber').value = '';
+        }).catch(err => {
+            alert('Sorğu göndərilərkən xəta baş verdi: ' + err.message);
+        });
     });
+
     function initializeSupportChat(user) {
-        const chatWindow = document.getElementById('chat-window'), chatToggleBtn = document.getElementById('chat-toggle-btn'), chatMessages = document.getElementById('chat-messages'), chatInput = document.getElementById('chat-input'), sendChatBtn = document.getElementById('send-chat-btn'), chatBadge = document.getElementById('chat-notification-badge');
-        if (messageListener) messageListener.off(); if (chatStateListener) chatStateListener.off();
-        chatToggleBtn.onclick = () => { const isHidden = chatWindow.style.display === 'none' || chatWindow.style.display === ''; chatWindow.style.display = isHidden ? 'flex' : 'none'; if (isHidden) { db.ref(`support_chats/${user.uid}/new_message_for_user_count`).set(0); } };
+        const chatWindow = document.getElementById('chat-window');
+        const chatToggleBtn = document.getElementById('chat-toggle-btn');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendChatBtn = document.getElementById('send-chat-btn');
+        const chatBadge = document.getElementById('chat-notification-badge');
+
+        if (messageListener) messageListener.off();
+        if (chatStateListener) chatStateListener.off();
+
+        chatToggleBtn.onclick = () => {
+            const isHidden = chatWindow.style.display === 'none' || chatWindow.style.display === '';
+            chatWindow.style.display = isHidden ? 'flex' : 'none';
+            if (isHidden) {
+                db.ref(`support_chats/${user.uid}/new_message_for_user_count`).set(0);
+            }
+        };
+
         const chatRef = db.ref(`support_chats/${user.uid}`);
-        chatStateListener = chatRef.on('value', (snapshot) => { const count = snapshot.val()?.new_message_for_user_count || 0; chatBadge.textContent = count; chatBadge.style.display = count > 0 ? 'flex' : 'none'; });
+        chatStateListener = chatRef.on('value', (snapshot) => {
+            const count = snapshot.val()?.new_message_for_user_count || 0;
+            chatBadge.textContent = count;
+            chatBadge.style.display = count > 0 ? 'flex' : 'none';
+        });
+
         chatMessages.innerHTML = '';
         const messagesRef = db.ref(`support_chats/${user.uid}/messages`).limitToLast(50);
-        messageListener = messagesRef.on('child_added', (snapshot) => { const message = snapshot.val(), messageDiv = document.createElement('div'); messageDiv.className = `message ${message.sender === 'admin' ? 'admin' : 'user'}`; messageDiv.textContent = message.text; chatMessages.appendChild(messageDiv); chatMessages.scrollTop = chatMessages.scrollHeight; });
-        const sendMessage = () => { const text = chatInput.value.trim(); if (text === '') return; const messageData = { text: text, sender: user.uid, timestamp: firebase.database.ServerValue.TIMESTAMP }; db.ref(`support_chats/${user.uid}/messages`).push(messageData); db.ref(`support_chats/${user.uid}`).update({ user_email: user.email, last_message: text, last_updated: firebase.database.ServerValue.TIMESTAMP, new_message_for_admin: true }); chatInput.value = ''; };
+        messageListener = messagesRef.on('child_added', (snapshot) => {
+            const message = snapshot.val();
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${message.sender === 'admin' ? 'admin' : 'user'}`;
+            messageDiv.textContent = message.text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+
+        const sendMessage = () => {
+            const text = chatInput.value.trim();
+            if (text === '') return;
+
+            const messageData = {
+                text: text,
+                sender: user.uid,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+            db.ref(`support_chats/${user.uid}/messages`).push(messageData);
+            db.ref(`support_chats/${user.uid}`).update({
+                user_email: user.email,
+                last_message: text,
+                last_updated: firebase.database.ServerValue.TIMESTAMP,
+                new_message_for_admin: true
+            });
+            chatInput.value = '';
+        };
+
         sendChatBtn.onclick = sendMessage;
-        chatInput.onkeydown = (event) => { if (event.key === 'Enter') sendMessage(); };
+        chatInput.onkeydown = (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        };
     }
 </script>
 </body>
 </html>
+
+
+  
