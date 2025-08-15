@@ -166,165 +166,136 @@ font-weight:600;
   <button id="pulCekBtn">🏦 PULU ÇEK</button>
 </div>
 
-<div class="modalOverlay" id="payModal">
-  <div class="modalContent">
-    <p>💲 PUL YÜKLƏ M10 077 543 50 53</p>
-    <button id="closePayModal">Bağla</button>
-  </div>
-</div>
-
-<div class="modalOverlay" id="cekModal">
-  <div class="modalContent">
-    <p>ÇƏKİN ŞƏKLİNİ GÖNDƏRMƏYƏ BAS</p>
-    <button id="sendCekBtn">GÖNDƏR</button>
-    <button id="closeCekModal">Bağla</button>
-  </div>
-</div>
-
-<div class="modalOverlay" id="pulCekModal">
-  <div class="modalContent">
-    <h3>Pul Çıxarma Sorğusu</h3>
-    <input type="number" id="withdrawAmount" placeholder="Məbləğ (AZN)" required>
-    <input type="text" id="userName" placeholder="Ad" required>
-    <input type="text" id="userSurname" placeholder="Soyad" required>
-    <input type="tel" id="cardNumber" placeholder="Kart nömrəsi (16 rəqəm)" maxlength="16" pattern="\d{16}" required>
-    <button id="withdrawBtn">💸 PUL ÇIXART</button>
-    <button id="closePulCekModal">Bağla</button>
-  </div>
-</div>
-
-<div class="modalOverlay" id="notificationsModal">
-  <div class="modalContent">
-    <h3>Əməliyyat Tarixçəsi</h3>
-    <div id="notifications-list">
-      <p>Yüklənir...</p>
-    </div>
-    <button id="closeNotificationsModal">Bağla</button>
-  </div>
-</div>
+<div class="modalOverlay" id="payModal"><div class="modalContent"><p>💲 PUL YÜKLƏ M10 077 543 50 53</p><button id="closePayModal">Bağla</button></div></div>
+<div class="modalOverlay" id="cekModal"><div class="modalContent"><p>ÇƏKİN ŞƏKLİNİ GÖNDƏRMƏYƏ BAS</p><button id="sendCekBtn">GÖNDƏR</button><button id="closeCekModal">Bağla</button></div></div>
+<div class="modalOverlay" id="pulCekModal"><div class="modalContent"><h3>Pul Çıxarma Sorğusu</h3><input type="number" id="withdrawAmount" placeholder="Məbləğ (AZN)" required><input type="text" id="userName" placeholder="Ad" required><input type="text" id="userSurname" placeholder="Soyad" required><input type="tel" id="cardNumber" placeholder="Kart nömrəsi (16 rəqəm)" maxlength="16" pattern="\d{16}" required><button id="withdrawBtn">💸 PUL ÇIXART</button><button id="closePulCekModal">Bağla</button></div></div>
+<div class="modalOverlay" id="notificationsModal"><div class="modalContent"><h3>Əməliyyat Tarixçəsi</h3><div id="notifications-list"><p>Yüklənir...</p></div><button id="closeNotificationsModal">Bağla</button></div></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw",
-  authDomain: "niceuc-e5986.firebaseapp.com",
-  databaseURL: "https://niceuc-e5986-default-rtdb.firebaseio.com",
-  projectId: "niceuc-e5986",
-  storageBucket: "niceuc-e5986.firebasestorage.app",
-  messagingSenderId: "242221260650",
-  appId: "1:242221260650:web:d140153a2167c4738dcf13",
-  measurementId: "G-YKKRHJKYNB"
+    apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw",
+    authDomain: "niceuc-e5986.firebaseapp.com",
+    databaseURL: "https://niceuc-e5986-default-rtdb.firebaseio.com",
+    projectId: "niceuc-e5986",
+    storageBucket: "niceuc-e5986.appspot.com",
+    messagingSenderId: "242221260650",
+    appId: "1:242221260650:web:d140153a2167c4738dcf13"
 };
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
 let currentBalance = 0;
+let balanceListener = null; // Balans dinləyicisini saxlamaq üçün
 
-function saveUser(user){
-  const userInfo = document.getElementById('userInfo');
-  userInfo.textContent = `Salam, ${user.displayName}`;
-  db.ref('users/' + user.uid).set({ name: user.displayName, email: user.email });
-  db.ref('balances/' + user.uid).on('value', (snapshot) => {
-    const newBalance = snapshot.val() || 0;
-    if (newBalance > currentBalance) launchConfetti();
-    currentBalance = newBalance;
-    document.getElementById('balance').textContent = parseFloat(currentBalance).toFixed(2);
-  });
-}
-
-auth.onAuthStateChanged((user) => { if(user){ saveUser(user); } });
+// İstifadəçi daxil olduqda və ya səhifəni yenilədikdə bu funksiya işləyir
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    // İstifadəçi məlumatlarını və balansını yüklə
+    const userInfo = document.getElementById('userInfo');
+    userInfo.textContent = `Salam, ${user.displayName}`;
+    
+    // İstifadəçinin məlumatlarını bazaya yaz (ad/email dəyişə bilər)
+    db.ref('users/' + user.uid).set({ name: user.displayName, email: user.email });
+    
+    // Əgər köhnə balans dinləyicisi varsa, onu dayandır
+    if (balanceListener) {
+      balanceListener.off();
+    }
+    
+    // Balans üçün real-time dinləyici (listener) qur
+    const balanceRef = db.ref('balances/' + user.uid);
+    balanceListener = balanceRef.on('value', (snapshot) => {
+      const newBalance = snapshot.val() || 0;
+      
+      // Balans artarsa konfetti effekti
+      if (newBalance > currentBalance && currentBalance !== 0) {
+        launchConfetti();
+      }
+      currentBalance = newBalance;
+      document.getElementById('balance').textContent = parseFloat(currentBalance).toFixed(2);
+    }, (error) => {
+      console.error("Balans oxunarkən xəta:", error);
+    });
+  } else {
+    // İstifadəçi çıxış edibsə, məlumatları sıfırla
+    document.getElementById('userInfo').textContent = '';
+    document.getElementById('balance').textContent = '0.00';
+    if (balanceListener) {
+      balanceListener.off(); // Dinləyicini dayandır
+    }
+  }
+});
 
 // --- PUL ÇEK MODAL LOGIC ---
-const pulCekModal = document.getElementById('pulCekModal');
 document.getElementById('pulCekBtn').addEventListener('click', () => {
-  if (!auth.currentUser) return alert('Zəhmət olmasa, əvvəlcə sistemə daxil olun.');
-  pulCekModal.style.display = 'flex';
+    if (!auth.currentUser) return alert('Zəhmət olmasa, əvvəlcə sistemə daxil olun.');
+    document.getElementById('pulCekModal').style.display = 'flex';
 });
-document.getElementById('closePulCekModal').addEventListener('click', () => pulCekModal.style.display = 'none');
+document.getElementById('closePulCekModal').addEventListener('click', () => document.getElementById('pulCekModal').style.display = 'none');
 document.getElementById('withdrawBtn').addEventListener('click', () => {
-  const user = auth.currentUser;
-  if (!user) return alert('Sessiyanız bitib. Zəhmət olmasa, yenidən daxil olun.');
-
-  const amount = parseFloat(document.getElementById('withdrawAmount').value);
-  const name = document.getElementById('userName').value;
-  const surname = document.getElementById('userSurname').value;
-  const card = document.getElementById('cardNumber').value;
-
-  if (!amount || !name || !surname || !card) return alert('Zəhmət olmasa, bütün xanaları doldurun.');
-  if (amount <= 0) return alert('Məbləğ 0-dan böyük olmalıdır.');
-  if (amount > currentBalance) return alert(`Balansınızda kifayət qədər vəsait yoxdur. Maksimum: ${currentBalance.toFixed(2)} AZN`);
-  if (card.length !== 16 || !/^\d{16}$/.test(card)) return alert('Kart nömrəsi 16 rəqəmdən ibarət olmalıdır.');
-
-  const withdrawalRequest = {
-    uid: user.uid, userEmail: user.email,
-    requestData: { name, surname, cardNumber: card, amount },
-    status: 'pending', createdAt: firebase.database.ServerValue.TIMESTAMP
-  };
-
-  db.ref('withdrawals').push(withdrawalRequest)
-    .then(() => {
-      alert('Sorğunuz uğurla göndərildi!');
-      document.getElementById('notification-badge').style.display = 'flex';
-      pulCekModal.style.display = 'none';
-      ['withdrawAmount', 'userName', 'userSurname', 'cardNumber'].forEach(id => document.getElementById(id).value = '');
-    })
-    .catch((error) => alert('Xəta: ' + error.message));
+    const user = auth.currentUser;
+    if (!user) return alert('Sessiyanız bitib. Zəhmət olmasa, yenidən daxil olun.');
+    const amount = parseFloat(document.getElementById('withdrawAmount').value);
+    const name = document.getElementById('userName').value;
+    const surname = document.getElementById('userSurname').value;
+    const card = document.getElementById('cardNumber').value;
+    if (!amount || !name || !surname || !card) return alert('Zəhmət olmasa, bütün xanaları doldurun.');
+    if (amount <= 0) return alert('Məbləğ 0-dan böyük olmalıdır.');
+    if (amount > currentBalance) return alert(`Balansınızda kifayət qədər vəsait yoxdur. Maksimum: ${currentBalance.toFixed(2)} AZN`);
+    if (card.length !== 16 || !/^\d{16}$/.test(card)) return alert('Kart nömrəsi 16 rəqəmdən ibarət olmalıdır.');
+    const withdrawalRequest = {uid: user.uid, userEmail: user.email, requestData: { name, surname, cardNumber: card, amount }, status: 'pending', createdAt: firebase.database.ServerValue.TIMESTAMP};
+    db.ref('withdrawals').push(withdrawalRequest).then(() => {
+        alert('Sorğunuz uğurla göndərildi!');
+        document.getElementById('notification-badge').style.display = 'flex';
+        document.getElementById('pulCekModal').style.display = 'none';
+        ['withdrawAmount', 'userName', 'userSurname', 'cardNumber'].forEach(id => document.getElementById(id).value = '');
+    }).catch((error) => alert('Xəta: ' + error.message));
 });
 
 // --- NOTIFICATION LOGIC ---
-const notificationBell = document.getElementById('notification-bell');
-const notificationsModal = document.getElementById('notificationsModal');
-const notificationsList = document.getElementById('notifications-list');
-
-notificationBell.addEventListener('click', () => {
-  const user = auth.currentUser;
-  if (!user) return alert('Tarixçəyə baxmaq üçün daxil olun.');
-
-  notificationsModal.style.display = 'flex';
-  document.getElementById('notification-badge').style.display = 'none';
-  notificationsList.innerHTML = '<p>Yüklənir...</p>';
-
-  db.ref('withdrawals').orderByChild('uid').equalTo(user.uid).limitToLast(10).once('value', snapshot => {
-    if (!snapshot.exists()) {
-      notificationsList.innerHTML = '<p>Heç bir əməliyyat tapılmadı.</p>';
-      return;
-    }
-    notificationsList.innerHTML = '';
-    let items = [];
-    snapshot.forEach(child => items.push(child.val()));
-    
-    items.reverse().forEach(data => { // reverse to show latest first
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'notification-item';
-        const date = new Date(data.createdAt).toLocaleString();
-        itemDiv.innerHTML = `
-            <span>${data.requestData.amount.toFixed(2)} AZN çıxarış sorğusu</span>
-            <div class="date">${date}</div>
-            <div class="status-pending">Status: Gözləmədə</div>
-        `;
-        notificationsList.appendChild(itemDiv);
+document.getElementById('notification-bell').addEventListener('click', () => {
+    const user = auth.currentUser;
+    if (!user) return alert('Tarixçəyə baxmaq üçün daxil olun.');
+    const notificationsModal = document.getElementById('notificationsModal');
+    const notificationsList = document.getElementById('notifications-list');
+    notificationsModal.style.display = 'flex';
+    document.getElementById('notification-badge').style.display = 'none';
+    notificationsList.innerHTML = '<p>Yüklənir...</p>';
+    db.ref('withdrawals').orderByChild('uid').equalTo(user.uid).limitToLast(10).once('value', snapshot => {
+        if (!snapshot.exists()) {
+            notificationsList.innerHTML = '<p>Heç bir əməliyyat tapılmadı.</p>';
+            return;
+        }
+        notificationsList.innerHTML = '';
+        let items = [];
+        snapshot.forEach(child => items.push(child.val()));
+        items.reverse().forEach(data => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'notification-item';
+            itemDiv.innerHTML = `<span>${data.requestData.amount.toFixed(2)} AZN çıxarış sorğusu</span><div class="date">${new Date(data.createdAt).toLocaleString()}</div><div class="status-pending">Status: Gözləmədə</div>`;
+            notificationsList.appendChild(itemDiv);
+        });
     });
-  });
 });
-document.getElementById('closeNotificationsModal').addEventListener('click', () => notificationsModal.style.display = 'none');
+document.getElementById('closeNotificationsModal').addEventListener('click', () => document.getElementById('notificationsModal').style.display = 'none');
 
-// --- Other Modals & Confetti ---
-// (No changes to the logic below)
-document.getElementById('loginBtn').addEventListener('click', () => new firebase.auth.GoogleAuthProvider().setCustomParameters({ prompt: 'select_account' }) && auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()));
-const payModal = document.getElementById('payModal');
-document.getElementById('payBtn').addEventListener('click',()=> payModal.style.display='flex' );
-document.getElementById('closePayModal').addEventListener('click',()=> payModal.style.display='none' );
-const cekModal = document.getElementById('cekModal');
-document.getElementById('cekBtn').addEventListener('click',()=> cekModal.style.display='flex' );
-document.getElementById('closeCekModal').addEventListener('click',()=> cekModal.style.display='none' );
+// --- OTHER BUTTONS AND FUNCTIONS ---
+document.getElementById('loginBtn').addEventListener('click', () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    auth.signInWithPopup(provider).catch(error => alert("Giriş zamanı xəta: " + error.message));
+});
+document.getElementById('payBtn').addEventListener('click',()=> document.getElementById('payModal').style.display='flex' );
+document.getElementById('closePayModal').addEventListener('click',()=> document.getElementById('payModal').style.display='none' );
+document.getElementById('cekBtn').addEventListener('click',()=> document.getElementById('cekModal').style.display='flex' );
+document.getElementById('closeCekModal').addEventListener('click',()=> document.getElementById('cekModal').style.display='none' );
 document.getElementById('sendCekBtn').addEventListener('click',()=> window.open(`https://wa.me/+994513239857?text=${encodeURIComponent('ÇEKİ GÖNDƏRİRƏM')}`, '_blank'));
-function launchConfetti(){ for(let i=0;i<50;i++){ const c=document.createElement('div');c.textContent='💸';c.style.cssText=`position:absolute;font-size:${Math.random()*24+16}px;left:${Math.random()*100}%;top:-5%;opacity:${Math.random()};transition:transform 8s linear,opacity 5s`;document.getElementById('confettiContainer').appendChild(c);setTimeout(()=>{c.style.transform=`translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;c.style.opacity=0;},Math.random()*3000);setTimeout(()=>c.remove(),8000) } }
+function launchConfetti(){ for(let i=0;i<50;i++){ const c=document.createElement('div');c.textContent='💸';c.style.cssText=`position:absolute;font-size:${Math.random()*24+16}px;left:${Math.random()*100}%;top:-5%;opacity:${Math.random()};transition:transform 8s linear,opacity 5s`;document.body.appendChild(c);setTimeout(()=>{c.style.transform=`translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;c.style.opacity=0;},Math.random()*3000);setTimeout(()=>c.remove(),8000) } }
 
 </script>
 </body>
