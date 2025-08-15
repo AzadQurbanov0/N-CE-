@@ -150,7 +150,7 @@ body{
 <div class="cekModalOverlay" id="cekModal">
   <div class="cekModalContent">
     <p>ÇƏKİN ŞƏKLİ Nİ GÖNDƏRMƏYƏ BAS</p>
-    <button id="sendCekBtn">ÇEKİ GÖNDƏRİRƏM</button>
+    <button id="sendCekBtn">GÖNDER</button>
     <button id="closeCekModal">Bağla</button>
   </div>
 </div>
@@ -201,9 +201,9 @@ function launchConfetti(){
     confetti.style.left = Math.random()*100+'%';
     confetti.style.top = '-5%';
     confetti.style.opacity = Math.random();
-    confetti.style.transition = 'transform 5s linear, opacity 5s';
+    confetti.style.transition = 'transform 8s linear, opacity 5s';
     container.appendChild(confetti);
-    const delay = Math.random()*1000;
+    const delay = Math.random()*3000;
     setTimeout(()=>{
       confetti.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;
       confetti.style.opacity = 0;
@@ -248,7 +248,7 @@ closeCekModal.addEventListener('click',()=>{ cekModal.style.display='none'; });
 // WhatsApp açan buton
 sendCekBtn.addEventListener('click',()=>{
   const phone = '+994513239857';
-  const message = encodeURIComponent('GÖDER');
+  const message = encodeURIComponent('ÇEKİ GÖNDERİREM');
   window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   cekModal.style.display='none';
 });
