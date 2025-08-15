@@ -23,8 +23,14 @@ body{
   display:grid;
   place-items:center;
   overflow:hidden;
+  opacity:0;
+  animation:fadeIn 1s forwards;
 }
-.wrap{display:grid;place-items:center;gap:12px;text-align:center;padding:20px;}
+@keyframes fadeIn{0%{opacity:0;}100%{opacity:1;}}
+
+.wrap{display:grid;place-items:center;gap:12px;text-align:center;padding:20px;opacity:0; transform:translateY(-20px); animation:slideDown 0.8s forwards 0.3s;}
+@keyframes slideDown{0%{opacity:0; transform:translateY(-20px);}100%{opacity:1; transform:translateY(0);}}
+
 .user-info{font-size:1rem;font-weight:600;opacity:.9;margin-bottom:6px;}
 .card{
   position:relative;
@@ -56,7 +62,6 @@ body{
   gap:6px;
   font-weight:600;
 }
-.google-btn img{width:18px;height:18px;}
 .glow{position:absolute;inset:-30%;pointer-events:none;background:radial-gradient(40% 35% at 50% 10%, rgba(34,197,94,.25), transparent 60%),radial-gradient(30% 30% at 80% 70%, rgba(99,102,241,.18), transparent 60%);filter:blur(30px);}
 #confettiContainer{position:fixed;top:0;left:0;width:100%;height:0;pointer-events:none;overflow:visible;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
@@ -129,7 +134,9 @@ body{
   <div class="bag">💰</div>
   <div class="balance"><span class="symbol">AZN</span><span id="balance" class="value">0.00</span></div>
 </div>
-<button class="google-btn" id="loginBtn"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="G"> Google ilə Giriş</button>
+<button class="google-btn" id="loginBtn">
+  🌐 Google ilə Giriş
+</button>
 </div>
 
 <div id="confettiContainer"></div>
@@ -150,7 +157,7 @@ body{
 <div class="cekModalOverlay" id="cekModal">
   <div class="cekModalContent">
     <p>ÇƏKİN ŞƏKLİ Nİ GÖNDƏRMƏYƏ BAS</p>
-    <button id="sendCekBtn">GÖNDER</button>
+    <button id="sendCekBtn">GÖNDƏRİRƏM</button>
     <button id="closeCekModal">Bağla</button>
   </div>
 </div>
@@ -179,7 +186,6 @@ const storage = firebase.storage();
 
 let oldBalance = 0;
 
-// Google ilə daxil ol
 function openLoginModal() {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider)
@@ -189,7 +195,6 @@ function openLoginModal() {
 
 document.getElementById('loginBtn').addEventListener('click', openLoginModal);
 
-// Konfetti effekti
 function launchConfetti(){
   const container = document.getElementById('confettiContainer');
   const count = 50;
@@ -212,7 +217,6 @@ function launchConfetti(){
   }
 }
 
-// İstifadəçini yadda saxlamaq və balansı göstərmək
 function saveUser(user){
   const userInfo = document.getElementById('userInfo');
   userInfo.textContent = `Salam, ${user.displayName} (${user.email})`;
@@ -229,14 +233,12 @@ function saveUser(user){
 
 auth.onAuthStateChanged((user) => { if(user){ saveUser(user); } });
 
-// 💲 PUL YÜKLƏ modal
 const payBtn = document.getElementById('payBtn');
 const payModal = document.getElementById('payModal');
 const closePayModal = document.getElementById('closePayModal');
 payBtn.addEventListener('click',()=>{ payModal.style.display='flex'; });
 closePayModal.addEventListener('click',()=>{ payModal.style.display='none'; });
 
-// 📷 ÇEK modal
 const cekBtn = document.getElementById('cekBtn');
 const cekModal = document.getElementById('cekModal');
 const closeCekModal = document.getElementById('closeCekModal');
@@ -245,16 +247,12 @@ const sendCekBtn = document.getElementById('sendCekBtn');
 cekBtn.addEventListener('click',()=>{ cekModal.style.display='flex'; });
 closeCekModal.addEventListener('click',()=>{ cekModal.style.display='none'; });
 
-// WhatsApp açan buton
 sendCekBtn.addEventListener('click',()=>{
   const phone = '+994513239857';
-  const message = encodeURIComponent('ÇEKİ GÖNDERİREM');
+  const message = encodeURIComponent('ÇEKİ GÖNDƏRİRƏM');
   window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   cekModal.style.display='none';
 });
-
-// Pul yüklə alert
-payBtn.addEventListener('click',()=>{ alert('M10 077 543 50 53 ÖDƏNİŞ ET'); });
 </script>
 </body>
 </html>
