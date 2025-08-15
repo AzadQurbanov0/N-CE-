@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="az">
 <head>
 <meta charset="UTF-8">
@@ -23,9 +23,11 @@ body{
   display:grid;
   place-items:center;
   overflow:hidden;
+  opacity:0; /* fade-in */
+  transition: opacity 1s ease;
 }
 .wrap{display:grid;place-items:center;gap:12px;text-align:center;padding:20px;}
-.user-info{font-size:1rem;font-weight:600;opacity:.9;margin-bottom:6px;}
+.user-info{font-size:1rem;font-weight:600;opacity:.9;margin-bottom:6px;transform:translateY(20px);opacity:0;transition: transform 0.8s ease, opacity 0.8s ease;}
 .card{
   position:relative;
   width:min(60vw,320px);
@@ -37,6 +39,9 @@ body{
   border-radius:24px;
   box-shadow:0 15px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
   backdrop-filter:blur(6px);
+  transform: scale(0.5);
+  opacity:0;
+  transition: transform 0.8s ease, opacity 0.8s ease;
 }
 .bag{font-size:clamp(5rem,18vw,12rem);filter:drop-shadow(0 8px 15px rgba(0,0,0,0.35));user-select:none;animation:float 5s ease-in-out infinite;}
 .balance{margin-top:10px;display:grid;place-items:center;font-weight:700;letter-spacing:1px;text-shadow:0 2px 5px rgba(0,0,0,0.5);}
@@ -55,13 +60,15 @@ body{
   align-items:center;
   gap:6px;
   font-weight:600;
+  opacity:0;
+  transform:translateY(10px);
+  transition: transform 0.6s ease, opacity 0.6s ease;
 }
 .google-btn img{width:18px;height:18px;}
 .glow{position:absolute;inset:-30%;pointer-events:none;background:radial-gradient(40% 35% at 50% 10%, rgba(34,197,94,.25), transparent 60%),radial-gradient(30% 30% at 80% 70%, rgba(99,102,241,.18), transparent 60%);filter:blur(30px);}
 #confettiContainer{position:fixed;top:0;left:0;width:100%;height:0;pointer-events:none;overflow:visible;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
-
-#payBtn,#cekBtn{
+#payBtn, #cekBtn {
   position:fixed;
   right:20px;
   padding:10px 20px;
@@ -71,37 +78,23 @@ body{
   border-radius:8px;
   cursor:pointer;
   font-weight:600;
+  opacity:0;
+  transform:translateY(10px);
+  transition: transform 0.6s ease, opacity 0.6s ease;
 }
-#payBtn{top:20px;background:#22c55e;}
-#cekBtn{top:64px;background:#2563eb;}
+#payBtn{top:20px; background:#22c55e;}
+#cekBtn{top:64px; background:#2563eb;}
 #uploadInput{display:none;}
-
-/* Overlay */
-.overlay{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.7);
-  place-items:center;
-  z-index:1000;
+/* Modal */
+#cekModal, #payModal{
+  position:fixed; inset:0; display:none; justify-content:center; align-items:center;
+  background:rgba(0,0,0,0.6); z-index:9999;
 }
-.overlayContent{
-  background:linear-gradient(135deg,var(--bg1),var(--bg2));
-  padding:20px;
-  border-radius:12px;
-  text-align:center;
-  color:white;
+.modal-content{
+  background:linear-gradient(135deg,var(--bg1),var(--bg2) 50%,var(--bg3));
+  padding:20px; border-radius:12px; color:white; text-align:center;
 }
-.overlayContent button{
-  margin-top:12px;
-  padding:8px 16px;
-  border:none;
-  border-radius:6px;
-  font-weight:600;
-  cursor:pointer;
-}
-#waBtn{background:#25d366;color:white;}
-#closePayBtn{background:#22c55e;color:white;}
+.modal-content button{margin-top:12px;background:#22c55e;color:white;padding:10px 20px;border:none;border-radius:8px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -120,22 +113,11 @@ body{
 <button id="cekBtn">📷 ÇEK</button>
 <input id="uploadInput" type="file" accept="image/*" capture="environment">
 
-<!-- Overlay ÇEK -->
-<div id="cekOverlay" class="overlay">
-  <div class="overlayContent">
-    <h2>ÇƏKİN ŞƏKLİ Nİ GÖNDƏRMƏYƏ BAS</h2>
-    <button id="waBtn">Göndər</button>
-  </div>
-</div>
+<!-- Modal -->
+<div id="cekModal"><div class="modal-content"><p>ÇƏKİN ŞƏKLİ Nİ GÖNDƏRMƏYƏ BAS</p><button id="cekSendBtn">ÇEKİ GÖNDƏRİRƏM</button></div></div>
+<div id="payModal"><div class="modal-content"><p>💲 PUL YÜKLƏ</p><button id="payConfirmBtn">TƏSDİQ ET</button></div></div>
 
-<!-- Overlay Pul YÜKLƏ -->
-<div id="payOverlay" class="overlay">
-  <div class="overlayContent">
-    <h2>M10 077 543 50 53 ÖDƏNİŞ ET</h2>
-    <button id="closePayBtn">Bağla</button>
-  </div>
-</div>
-
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
@@ -152,66 +134,93 @@ const firebaseConfig = {
   appId: "1:242221260650:web:d140153a2167c4738dcf13",
   measurementId: "G-YKKRHJKYNB"
 };
-
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth(),db=firebase.database(),storage=firebase.storage();
+const auth=firebase.auth(), db=firebase.database(), storage=firebase.storage();
 let oldBalance=0;
 
-function openLoginModal(){
-  const provider=new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).then(result=>saveUser(result.user)).catch(e=>alert(e.message));
-}
-document.getElementById('loginBtn').addEventListener('click',openLoginModal);
+// Giriş animasiyası
+window.addEventListener('load', ()=>{
+  document.body.style.opacity=1;
+  setTimeout(()=>{document.querySelector('.card').style.transform='scale(1)';document.querySelector('.card').style.opacity=1;},300);
+  setTimeout(()=>{const u=document.querySelector('.user-info'); u.style.transform='translateY(0)'; u.style.opacity=1;},600);
+  setTimeout(()=>{['.google-btn','#payBtn','#cekBtn'].forEach(sel=>{const e=document.querySelector(sel); e.style.opacity=1; e.style.transform='translateY(0)';});},900);
+});
 
-function launchConfetti(){
-  const container=document.getElementById('confettiContainer');
-  for(let i=0;i<50;i++){
-    const c=document.createElement('div');
-    c.textContent='🎊';
-    c.style.position='absolute';
-    c.style.fontSize=Math.random()*24+16+'px';
-    c.style.left=Math.random()*100+'%';
-    c.style.top='-5%';
-    c.style.opacity=Math.random();
-    c.style.transition='transform 5s linear, opacity 5s';
-    container.appendChild(c);
-    const delay=Math.random()*1000;
-    setTimeout(()=>{c.style.transform=`translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`;c.style.opacity=0;},delay);
-    setTimeout(()=>container.removeChild(c),5100);
-  }
-}
+// Google login
+document.getElementById('loginBtn').addEventListener('click', ()=>{
+  const provider=new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).then(res=>saveUser(res.user)).catch(err=>alert(err.message));
+});
 
 function saveUser(user){
   document.getElementById('userInfo').textContent=`Salam, ${user.displayName} (${user.email})`;
-  const ref=db.ref('balances/'+user.uid);
-  ref.on('value',snap=>{
-    const b=snap.val()||0;
-    document.getElementById('balance').textContent=parseFloat(b).toFixed(2);
-    if(b>oldBalance) launchConfetti();
-    oldBalance=b;
+  db.ref('balances/'+user.uid).on('value', snap=>{
+    const balance = snap.val()||0;
+    document.getElementById('balance').textContent=parseFloat(balance).toFixed(2);
+    if(balance>oldBalance) launchConfetti();
+    oldBalance=balance;
   });
 }
-auth.onAuthStateChanged(u=>{if(u) saveUser(u);});
 
-// 💲 PUL YÜKLƏ overlay
+auth.onAuthStateChanged(user=>{if(user) saveUser(user);});
+
+// Pul yüklə
 const payBtn=document.getElementById('payBtn');
-const payOverlay=document.getElementById('payOverlay');
-const closePayBtn=document.getElementById('closePayBtn');
-payBtn.addEventListener('click',()=>{payOverlay.style.display='grid';});
-closePayBtn.addEventListener('click',()=>{payOverlay.style.display='none';});
+const payModal=document.getElementById('payModal');
+const payConfirmBtn=document.getElementById('payConfirmBtn');
+payBtn.addEventListener('click',()=>{payModal.style.display='flex';});
+payConfirmBtn.addEventListener('click',()=>{alert('M10 077 543 50 53 ÖDƏNİŞ ET'); payModal.style.display='none';});
 
-// ÇEK overlay və WhatsApp
+// ÇEK
 const cekBtn=document.getElementById('cekBtn');
-const cekOverlay=document.getElementById('cekOverlay');
-const waBtn=document.getElementById('waBtn');
-cekBtn.addEventListener('click',()=>{cekOverlay.style.display='grid';});
-cekOverlay.addEventListener('click',e=>{if(e.target===cekOverlay) cekOverlay.style.display='none';});
-waBtn.addEventListener('click',()=>{
-  const number='+9945132329857';
-  const text=encodeURIComponent('ÇEKİ GÖNDƏRİRƏM');
-  window.open(`https://wa.me/${number}?text=${text}`,'_blank');
-  cekOverlay.style.display='none';
+const cekModal=document.getElementById('cekModal');
+const cekSendBtn=document.getElementById('cekSendBtn');
+const uploadInput=document.getElementById('uploadInput');
+
+cekBtn.addEventListener('click',()=>{cekModal.style.display='flex';});
+cekSendBtn.addEventListener('click',()=>{
+  uploadInput.click();
+  cekModal.style.display='none';
 });
+
+uploadInput.addEventListener('change', async (e)=>{
+  const file=e.target.files[0];
+  if(!file){return;}
+  const user=auth.currentUser;
+  if(!user){alert('Əvvəlcə Google ilə daxil olun.'); uploadInput.value=''; return;}
+  try{
+    const ts=Date.now(), ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+    const path=`receipts/${user.uid}/${ts}.${ext}`;
+    const snap=await storage.ref(path).put(file);
+    const url=await snap.ref.getDownloadURL();
+    await db.ref('receipts').push({uid:user.uid,name:user.displayName,email:user.email,url,createdAt:firebase.database.ServerValue.TIMESTAMP});
+    // WhatsApp link
+    const waNumber='+9945132329857';
+    const waMsg='ÇEKİ GÖNDƏRİRƏM';
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`);
+    alert('Şəkil göndərildi ✅ WhatsApp açıldı.');
+  }catch(err){console.error(err); alert('Xəta: '+err.message);}
+  finally{uploadInput.value='';}
+});
+
+// Konfetti
+function launchConfetti(){
+  const container=document.getElementById('confettiContainer');
+  for(let i=0;i<50;i++){
+    const conf=document.createElement('div');
+    conf.textContent='🎊';
+    conf.style.position='absolute';
+    conf.style.fontSize=Math.random()*24+16+'px';
+    conf.style.left=Math.random()*100+'%';
+    conf.style.top='-5%';
+    conf.style.opacity=Math.random();
+    conf.style.transition='transform 5s linear, opacity 5s';
+    container.appendChild(conf);
+    const delay=Math.random()*1000;
+    setTimeout(()=>{conf.style.transform=`translateY(${window.innerHeight}px) rotate(${Math.random()*360}deg)`; conf.style.opacity=0;}, delay);
+    setTimeout(()=>container.removeChild(conf),5100);
+  }
+}
 </script>
 </body>
 </html>
