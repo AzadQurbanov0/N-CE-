@@ -90,10 +90,10 @@ border-radius:8px;
 cursor:pointer;
 font-weight:600;
 }
-#pulCekBtn{ /* Yeni əlavə olunan düymə */
+#pulCekBtn{
 position:fixed;
-top:64px;
-right:100px; /* ÇEK düyməsinin solunda görünməsi üçün */
+top:108px; /* Yeri dəyişdirildi */
+right:20px;
 padding:10px 20px;
 font-size:1rem;
 background:#f59e0b;
@@ -114,10 +114,47 @@ z-index:9999; display:none;
 .modalContent{
 background:linear-gradient(135deg,var(--bg1),var(--bg2));
 padding:20px; border-radius:12px; text-align:center; color:white;
+width: min(90vw, 350px);
 }
 .modalContent button{
 margin-top:12px; padding:8px 16px; font-size:1rem; border:none; border-radius:8px; cursor:pointer; background:#22c55e; color:white;
 }
+/* Yeni Pul Çek pəncərəsi üçün stillər */
+.modalContent h3 {
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+.modalContent input {
+  display: block;
+  width: 95%;
+  margin: 10px auto;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.1);
+  color: white;
+  font-size: 1rem;
+}
+.modalContent input::placeholder {
+    color: #ccc;
+    opacity: 0.7;
+}
+.modalContent .button-group {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+.modalContent .button-group button {
+    margin-top: 0;
+}
+#withdrawBtn {
+    background: #eab308;
+}
+#closePulCekModal {
+    background: #ef4444;
+}
+
 .cekModalOverlay{
 position:fixed;
 top:0; left:0; width:100%; height:100%;
@@ -149,9 +186,8 @@ margin-top:12px; padding:8px 16px; font-size:1rem; border:none; border-radius:8p
 
 <div id="confettiContainer"></div>
 <button id="payBtn">💲 PUL YÜKLƏ</button>
-<!-- Yeni əlavə olunan düymə -->
-<button id="pulCekBtn">🏦 PULU ÇEK</button>
 <button id="cekBtn">📷 ÇEK</button>
+<button id="pulCekBtn">🏦 PULU ÇEK</button>
 <input id="uploadInput" type="file" accept="image/*" capture="environment">
 
 <div class="modalOverlay" id="payModal">
@@ -168,6 +204,20 @@ margin-top:12px; padding:8px 16px; font-size:1rem; border:none; border-radius:8p
     <button id="closeCekModal">Bağla</button>
   </div>
 </div>
+
+<div class="modalOverlay" id="pulCekModal">
+  <div class="modalContent">
+    <h3>Kart Məlumatları</h3>
+    <input type="text" id="userName" placeholder="Ad" required>
+    <input type="text" id="userSurname" placeholder="Soyad" required>
+    <input type="tel" id="cardNumber" placeholder="Kart nömrəsi (8 rəqəm)" maxlength="8" pattern="\d{8}" required>
+    <div class="button-group">
+        <button id="withdrawBtn">💸 PUL ÇIXART</button>
+        <button id="closePulCekModal">Bağla</button>
+    </div>
+  </div>
+</div>
+
 
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
@@ -260,6 +310,46 @@ sendCekBtn.addEventListener('click',()=>{
   window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   cekModal.style.display='none';
 });
+
+// --- YENİ PUL ÇEK PƏNCƏRƏSİNİN LOGİKASI ---
+const pulCekBtn = document.getElementById('pulCekBtn');
+const pulCekModal = document.getElementById('pulCekModal');
+const closePulCekModal = document.getElementById('closePulCekModal');
+const withdrawBtn = document.getElementById('withdrawBtn');
+
+pulCekBtn.addEventListener('click', () => {
+  pulCekModal.style.display = 'flex';
+});
+
+closePulCekModal.addEventListener('click', () => {
+  pulCekModal.style.display = 'none';
+});
+
+withdrawBtn.addEventListener('click', () => {
+  const name = document.getElementById('userName').value;
+  const surname = document.getElementById('userSurname').value;
+  const card = document.getElementById('cardNumber').value;
+
+  if (!name || !surname || !card) {
+    alert('Zəhmət olmasa, bütün xanaları doldurun.');
+    return;
+  }
+  if (card.length !== 8 || !/^\d{8}$/.test(card)) {
+    alert('Kart nömrəsi düzgün olaraq 8 rəqəmdən ibarət olmalıdır.');
+    return;
+  }
+
+  // Real tətbiqdə bu məlumatlar serverə göndərilir.
+  // Burada isə sadəcə təsdiq mesajı göstərilir.
+  alert(`Hörmətli ${name} ${surname}, pul çıxarma sorğunuz qeydə alındı. Tezliklə sizinlə əlaqə saxlanılacaq.`);
+  
+  // Xanaları təmizləyib pəncərəni bağlayırıq
+  document.getElementById('userName').value = '';
+  document.getElementById('userSurname').value = '';
+  document.getElementById('cardNumber').value = '';
+  pulCekModal.style.display = 'none';
+});
+
 </script>
 </body>
 </html>
