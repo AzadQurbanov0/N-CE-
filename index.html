@@ -129,7 +129,6 @@
         loadUsersAndBalances();
     }
 
-    // ================= YENİ FUNKSİYA: BALANSI ARTIR VƏ TARİXÇƏ YARAT =================
     function addBalanceAndCreateHistory(userId, amountToAdd) {
         const amount = parseFloat(amountToAdd);
         if (!userId || isNaN(amount) || amount <= 0) {
@@ -140,20 +139,16 @@
         const newDepositKey = db.ref('deposits').push().key;
         const updates = {};
     
-        // Tarixçəyə yazılacaq məlumat
         updates['/deposits/' + newDepositKey] = {
             uid: userId,
             amount: amount,
             createdAt: firebase.database.ServerValue.TIMESTAMP
         };
     
-        // Balansa əlavə ediləcək məbləğ (ən təhlükəsiz üsul)
         updates['/balances/' + userId + '/amount'] = firebase.database.ServerValue.increment(amount);
     
-        // Hər iki yeniləməni eyni anda Firebase-ə göndəririk
         return db.ref().update(updates);
     }
-    // =================================================================================
 
     async function updateRequestStatus(key, newStatus) {
         if (!confirm(`Bu sorğunu "${newStatus === 'approved' ? 'Onayla' : 'Rədd et'}" statusuna dəyişmək istəyirsiniz?`)) return;
@@ -241,10 +236,16 @@
         input.value = '';
     }
 
-    function deleteRequest(key, msg) { if(confirm(msg || "Sorğunu silmək istəyirsiniz?")) db.ref('withdrawals/' + key).remove(); }
+    function archiveRequest(key) {
+        if (confirm("Bu sorğunu arxivləşdirmək istəyirsiniz? Sorğu admin panelindən gizlədiləcək, amma istifadəçi tarixçəsində qalacaq.")) {
+            db.ref('withdrawals/' + key).update({ isArchived: true })
+                .then(() => { alert("Sorğu uğurla arxivləndi."); })
+                .catch(error => { alert("Arxivləmə zamanı xəta baş verdi: " + error.message); });
+        }
+    }
+
     function deleteUser(uid, email) { if(confirm(`'${email}' istifadəçisini sil? Bu əməliyyat geri qaytarılmazdır.`)) { db.ref('users/' + uid).remove(); db.ref('balances/' + uid).remove(); }}
     
-    // ================= KÖHNƏ FUNKSİYA YENİSİ İLƏ ƏVƏZ EDİLDİ =================
     async function applyBalanceChange(uid) {
         const inputElement = document.getElementById(`balance-input-${uid}`);
         const inputValue = inputElement.value.trim().replace(',', '.');
@@ -264,7 +265,7 @@
                 amountAdded = changeValue;
                 finalBalance = currentBalance + amountAdded;
             } else if (inputValue.startsWith('-')) {
-                finalBalance = currentBalance + changeValue; // changeValue onsuz da mənfidir
+                finalBalance = currentBalance + changeValue;
                 if (finalBalance < 0) finalBalance = 0;
                 if (confirm(`İstifadəçinin balansını ${finalBalance.toFixed(2)} AZN olaraq təyin etmək istəyirsiniz? (Tarixçəyə yazılmayacaq)`)) {
                     await db.ref('balances/' + uid).set({ amount: finalBalance });
@@ -283,7 +284,7 @@
                     alert("Balans uğurla artırıldı və tarixçəyə qeyd edildi!");
                     inputElement.value = '';
                 }
-            } else { // Mütləq rəqəm daxil edilib və bu, balansı azaldır
+            } else {
                 if (confirm(`İstifadəçinin balansını ${finalBalance.toFixed(2)} AZN olaraq təyin etmək istəyirsiniz? (Tarixçəyə yazılmayacaq)`)) {
                     await db.ref('balances/' + uid).set({ amount: finalBalance });
                     alert("Balans uğurla yeniləndi!");
@@ -294,23 +295,37 @@
             alert("Balans yenilənərkən xəta baş verdi: " + error.message);
         }
     }
-    // ========================================================================
 
     function loadWithdrawals() {
         const withdrawalsTableBody = document.getElementById('withdrawalsTable').querySelector('tbody');
         db.ref('withdrawals').on('value', (snapshot) => {
-            if (!snapshot.exists()) { withdrawalsTableBody.innerHTML = '<tr class="no-data-row"><td colspan="7" class="no-data">Heç bir sorğu yoxdur.</td></tr>'; return; }
+            if (!snapshot.exists()) {
+                withdrawalsTableBody.innerHTML = '<tr class="no-data-row"><td colspan="7" class="no-data">Heç bir sorğu yoxdur.</td></tr>';
+                return;
+            }
+            
             withdrawalsTableBody.innerHTML = '';
             let requests = [];
-            snapshot.forEach(child => { requests.push({ key: child.key, ...child.val() }); });
-            requests.sort((a, b) => {
+            snapshot.forEach(child => {
+                requests.push({ key: child.key, ...child.val() });
+            });
+
+            const visibleRequests = requests.filter(req => !req.isArchived);
+
+            visibleRequests.sort((a, b) => {
                 const a_is_pending = a.status === 'pending';
                 const b_is_pending = b.status === 'pending';
                 if (a_is_pending && !b_is_pending) return -1;
                 if (!a_is_pending && b_is_pending) return 1;
                 return b.createdAt - a.createdAt;
             });
-            requests.forEach(data => {
+
+            if (visibleRequests.length === 0) {
+                 withdrawalsTableBody.innerHTML = '<tr class="no-data-row"><td colspan="7" class="no-data">Göstəriləcək aktiv sorğu yoxdur.</td></tr>';
+                return;
+            }
+
+            visibleRequests.forEach(data => {
                 const reqData = data.requestData;
                 const tr = document.createElement('tr');
                 let statusText, statusClass;
@@ -319,12 +334,14 @@
                     case 'rejected': statusText = 'Rədd edildi'; statusClass = 'status-rejected'; break;
                     default: statusText = 'Gözləmədə'; statusClass = 'status-pending';
                 }
+                
                 let actionButtons;
                 if (data.status === 'pending') {
                     actionButtons = `<button class="btn btn-green" onclick="updateRequestStatus('${data.key}', 'approved')">Onayla</button><button class="btn btn-red" onclick="updateRequestStatus('${data.key}', 'rejected')">Rədd et</button>`;
                 } else {
-                    actionButtons = `<button class="btn btn-dark-red" onclick="deleteRequest('${data.key}', 'Bu sorğunu silmək istədiyinizə əminsiniz?')">Sil</button>`;
+                    actionButtons = `<button class="btn btn-dark-red" onclick="archiveRequest('${data.key}')">Arxivlə</button>`;
                 }
+
                 tr.innerHTML = `<td data-label="Email">${data.userEmail}</td><td data-label="Ad/Soyad">${reqData.name} ${reqData.surname}</td><td data-label="Kart">${reqData.cardNumber}</td><td data-label="Məbləğ"><b>${parseFloat(reqData.amount).toFixed(2)} AZN</b></td><td data-label="Tarix">${new Date(data.createdAt).toLocaleString()}</td><td data-label="Status"><span class="status ${statusClass}">${statusText}</span></td><td data-label="Əməliyyat"><div class="actions-cell">${actionButtons}</div></td>`;
                 withdrawalsTableBody.appendChild(tr);
             });
