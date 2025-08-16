@@ -22,8 +22,6 @@
   .status-pending { background-color: var(--yellow); } .status-approved { background-color: var(--green); } .status-rejected { background-color: var(--red); }
   .actions-cell { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
   .balance-input { width: 80px; padding: 4px; border-radius: 4px; border: 1px solid #334155; background: #1e293b; color: var(--text-main); }
-  
-  /* === DƏSTƏK MƏRKƏZİ STİLLƏRİ === */
   #support-center { display: flex; gap: 16px; min-height: 60vh; max-height: 70vh; }
   #chat-list-container { flex: 0 0 300px; background: rgba(0,0,0,0.1); border-radius: 8px; overflow-y: auto; padding: 8px; }
   .chat-list-item { padding: 12px; border-radius: 6px; cursor: pointer; margin-bottom: 6px; border: 1px solid transparent; transition: all 0.2s ease; display: flex; justify-content: space-between; align-items: center; }
@@ -41,7 +39,15 @@
   #send-reply-btn { background: var(--purple); color: white; border: none; padding: 0 16px; border-radius: 6px; margin-left: 8px; cursor: pointer; font-weight: bold; }
   #chat-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); }
 
-  /* MOBİL STİLLƏRİ */
+  /* YENİ - ÇEK ŞƏKİLLƏRİ ÜÇÜN STİLLƏR */
+  #receipts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; margin-top: 12px; }
+  .receipt-card { background: rgba(0,0,0,0.15); border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
+  .receipt-card img { width: 100%; height: 200px; object-fit: cover; display: block; cursor: pointer; }
+  .receipt-info { padding: 10px; font-size: 0.9rem; }
+  .receipt-info p { margin: 0 0 6px 0; }
+  .receipt-info strong { color: var(--text-muted); }
+  .receipt-delete-btn { width: 100%; padding: 8px; background: var(--red); color: white; border: none; cursor: pointer; font-weight: bold; }
+
   @media screen and (max-width: 768px) {
     body { padding: 10px; }
     #support-center { flex-direction: column; height: auto; max-height: none; }
@@ -63,6 +69,13 @@
     <div id="main-content" style="display: none;">
       <h1 id="admin-welcome"></h1>
       
+      <div class="section">
+        <h2 style="margin:0;">Yeni Yüklənmiş Çeklər</h2>
+        <div id="receipts-grid">
+            <p class="no-data">Yeni çek yoxdur.</p>
+        </div>
+      </div>
+
       <div class="section">
         <h2 style="margin:0;">Dəstək Mərkəzi</h2>
         <div id="support-center">
@@ -101,11 +114,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
-<script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script> <script>
     const firebaseConfig = { apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw", authDomain: "niceuc-e5986.firebaseapp.com", databaseURL: "https://niceuc-e5986-default-rtdb.firebaseio.com", projectId: "niceuc-e5986", appId: "1:242221260650:web:d140153a2167c4738dcf13" };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
+    const storage = firebase.storage(); // YENİ
     let currentChatUid = null;
     let messagesListener = null;
 
@@ -124,248 +138,67 @@
     document.getElementById('adminLoginBtn').addEventListener('click', () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()));
     
     function loadAllData() {
+        loadReceipts(); // YENİ
         loadSupportChats();
         loadWithdrawals();
         loadUsersAndBalances();
     }
 
-    function addBalanceAndCreateHistory(userId, amountToAdd) {
-        const amount = parseFloat(amountToAdd);
-        if (!userId || isNaN(amount) || amount <= 0) {
-            console.error("Düzgün istifadəçi ID və ya məbləğ daxil edilməyib.");
-            return Promise.reject(new Error("Düzgün məbləğ daxil edilməyib."));
-        }
-    
-        const newDepositKey = db.ref('deposits').push().key;
-        const updates = {};
-    
-        updates['/deposits/' + newDepositKey] = {
-            uid: userId,
-            amount: amount,
-            createdAt: firebase.database.ServerValue.TIMESTAMP
-        };
-    
-        updates['/balances/' + userId + '/amount'] = firebase.database.ServerValue.increment(amount);
-    
-        return db.ref().update(updates);
-    }
+    // YENİ FUNKSİYALAR - ÇEK ŞƏKİLLƏRİNİ YÜKLƏMƏK VƏ SİLMƏK ÜÇÜN
+    function loadReceipts() {
+        const grid = document.getElementById('receipts-grid');
+        const receiptsRef = db.ref('receipt_uploads').orderByChild('createdAt');
 
-    async function updateRequestStatus(key, newStatus) {
-        if (!confirm(`Bu sorğunu "${newStatus === 'approved' ? 'Onayla' : 'Rədd et'}" statusuna dəyişmək istəyirsiniz?`)) return;
-
-        if (newStatus === 'approved') {
-            db.ref('withdrawals/' + key).update({ status: newStatus })
-                .then(() => alert("Sorğu təsdiqləndi."))
-                .catch(error => alert("Xəta: " + error.message));
-        } 
-        else if (newStatus === 'rejected') {
-            const withdrawalRef = db.ref('withdrawals/' + key);
-            try {
-                const snapshot = await withdrawalRef.once('value');
-                const requestData = snapshot.val();
-                if (!requestData || requestData.status !== 'pending') {
-                    alert("Bu sorğu artıq emal edilib və ya tapılmadı.");
-                    withdrawalRef.update({ status: newStatus });
-                    return;
-                }
-                const amountToRefund = requestData.requestData.amount;
-                const userId = requestData.uid;
-                await db.ref('balances/' + userId + '/amount').set(firebase.database.ServerValue.increment(amountToRefund));
-                await withdrawalRef.update({ status: newStatus });
-                alert(`Sorğu rədd edildi və ${amountToRefund.toFixed(2)} AZN istifadəçinin balansına geri qaytarıldı.`);
-            } catch (error) {
-                alert("Sorğu rədd edilərkən xəta baş verdi: " + error.message);
-            }
-        }
-    }
-
-    function loadSupportChats() {
-        const chatListContainer = document.getElementById('chat-list-container');
-        const chatRef = db.ref('support_chats').orderByChild('last_updated');
-        chatRef.on('value', snapshot => {
-            chatListContainer.innerHTML = '';
-            if (!snapshot.exists()) { chatListContainer.innerHTML = '<p class="no-data">Heç bir söhbət yoxdur.</p>'; return; }
-            let chats = [];
-            snapshot.forEach(child => { chats.push({ uid: child.key, ...child.val() }); });
-            chats.reverse().forEach(chatData => {
-                const item = document.createElement('div');
-                item.className = 'chat-list-item';
-                if (chatData.uid === currentChatUid) { item.classList.add('active'); }
-                item.innerHTML = `<span>${chatData.user_email || 'Naməlum'}</span> ${chatData.new_message_for_admin ? '<div class="new-message-indicator"></div>' : ''}`;
-                item.onclick = () => openChat(chatData.uid, chatData.user_email);
-                chatListContainer.appendChild(item);
-            });
-        });
-        document.getElementById('send-reply-btn').onclick = sendAdminReply;
-        document.getElementById('reply-input').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAdminReply(); } };
-    }
-
-    function openChat(uid, userEmail) {
-        currentChatUid = uid;
-        document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active'));
-        const activeItem = [...document.querySelectorAll('.chat-list-item')].find(el => el.textContent.includes(userEmail));
-        if (activeItem) activeItem.classList.add('active');
-        document.getElementById('chat-placeholder').style.display = 'none';
-        document.getElementById('chat-view').style.display = 'flex';
-        document.getElementById('chat-view-header').textContent = `Söhbət: ${userEmail}`;
-        const messagesContainer = document.getElementById('messages-container');
-        messagesContainer.innerHTML = '';
-        if (messagesListener) { messagesListener.off(); }
-        db.ref(`support_chats/${uid}`).update({ new_message_for_admin: false });
-        const messagesRef = db.ref(`support_chats/${uid}/messages`).limitToLast(100);
-        messagesListener = messagesRef.on('child_added', msgSnapshot => {
-            const msg = msgSnapshot.val();
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `message ${msg.sender === 'admin' ? 'admin' : 'user'}`;
-            msgDiv.textContent = msg.text;
-            messagesContainer.appendChild(msgDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        });
-    }
-
-    function sendAdminReply() {
-        const input = document.getElementById('reply-input');
-        const text = input.value.trim();
-        if (text === '' || !currentChatUid) return;
-        const messageData = { text: text, sender: 'admin', timestamp: firebase.database.ServerValue.TIMESTAMP };
-        db.ref(`support_chats/${currentChatUid}/messages`).push(messageData);
-        db.ref(`support_chats/${currentChatUid}`).update({
-            last_message: text, last_updated: firebase.database.ServerValue.TIMESTAMP, new_message_for_admin: false,
-            new_message_for_user_count: firebase.database.ServerValue.increment(1)
-        });
-        input.value = '';
-    }
-
-    function archiveRequest(key) {
-        if (confirm("Bu sorğunu arxivləşdirmək istəyirsiniz? Sorğu admin panelindən gizlədiləcək, amma istifadəçi tarixçəsində qalacaq.")) {
-            db.ref('withdrawals/' + key).update({ isArchived: true })
-                .then(() => { alert("Sorğu uğurla arxivləndi."); })
-                .catch(error => { alert("Arxivləmə zamanı xəta baş verdi: " + error.message); });
-        }
-    }
-
-    function deleteUser(uid, email) { if(confirm(`'${email}' istifadəçisini sil? Bu əməliyyat geri qaytarılmazdır.`)) { db.ref('users/' + uid).remove(); db.ref('balances/' + uid).remove(); }}
-    
-    async function applyBalanceChange(uid) {
-        const inputElement = document.getElementById(`balance-input-${uid}`);
-        const inputValue = inputElement.value.trim().replace(',', '.');
-        if (inputValue === '') return alert("Zəhmət olmasa, bir dəyər daxil edin.");
-
-        const changeValue = parseFloat(inputValue);
-        if (isNaN(changeValue)) return alert("Zəhmət olmasa, düzgün rəqəm daxil edin (məsələn: 50, +50, -20).");
-
-        try {
-            const balanceSnapshot = await db.ref('balances/' + uid).once('value');
-            const currentBalance = balanceSnapshot.exists() && balanceSnapshot.val().amount ? parseFloat(balanceSnapshot.val().amount) : 0;
-            
-            let amountAdded = 0;
-            let finalBalance = 0;
-
-            if (inputValue.startsWith('+')) {
-                amountAdded = changeValue;
-                finalBalance = currentBalance + amountAdded;
-            } else if (inputValue.startsWith('-')) {
-                finalBalance = currentBalance + changeValue;
-                if (finalBalance < 0) finalBalance = 0;
-                if (confirm(`İstifadəçinin balansını ${finalBalance.toFixed(2)} AZN olaraq təyin etmək istəyirsiniz? (Tarixçəyə yazılmayacaq)`)) {
-                    await db.ref('balances/' + uid).set({ amount: finalBalance });
-                    alert("Balans uğurla yeniləndi!");
-                    inputElement.value = '';
-                }
-                return; 
-            } else {
-                finalBalance = changeValue;
-                amountAdded = finalBalance - currentBalance;
-            }
-
-            if (amountAdded > 0) {
-                if (confirm(`İstifadəçinin balansına ${amountAdded.toFixed(2)} AZN əlavə edilsin?\nYeni balans: ${finalBalance.toFixed(2)} AZN`)) {
-                    await addBalanceAndCreateHistory(uid, amountAdded);
-                    alert("Balans uğurla artırıldı və tarixçəyə qeyd edildi!");
-                    inputElement.value = '';
-                }
-            } else {
-                if (confirm(`İstifadəçinin balansını ${finalBalance.toFixed(2)} AZN olaraq təyin etmək istəyirsiniz? (Tarixçəyə yazılmayacaq)`)) {
-                    await db.ref('balances/' + uid).set({ amount: finalBalance });
-                    alert("Balans uğurla yeniləndi!");
-                    inputElement.value = '';
-                }
-            }
-        } catch (error) {
-            alert("Balans yenilənərkən xəta baş verdi: " + error.message);
-        }
-    }
-
-    function loadWithdrawals() {
-        const withdrawalsTableBody = document.getElementById('withdrawalsTable').querySelector('tbody');
-        db.ref('withdrawals').on('value', (snapshot) => {
+        receiptsRef.on('value', snapshot => {
+            grid.innerHTML = '';
             if (!snapshot.exists()) {
-                withdrawalsTableBody.innerHTML = '<tr class="no-data-row"><td colspan="7" class="no-data">Heç bir sorğu yoxdur.</td></tr>';
+                grid.innerHTML = '<p class="no-data">Yeni çek yoxdur.</p>';
                 return;
             }
-            
-            withdrawalsTableBody.innerHTML = '';
-            let requests = [];
+            let receipts = [];
             snapshot.forEach(child => {
-                requests.push({ key: child.key, ...child.val() });
+                receipts.push({ key: child.key, ...child.val() });
             });
-
-            const visibleRequests = requests.filter(req => !req.isArchived);
-
-            visibleRequests.sort((a, b) => {
-                const a_is_pending = a.status === 'pending';
-                const b_is_pending = b.status === 'pending';
-                if (a_is_pending && !b_is_pending) return -1;
-                if (!a_is_pending && b_is_pending) return 1;
-                return b.createdAt - a.createdAt;
-            });
-
-            if (visibleRequests.length === 0) {
-                 withdrawalsTableBody.innerHTML = '<tr class="no-data-row"><td colspan="7" class="no-data">Göstəriləcək aktiv sorğu yoxdur.</td></tr>';
-                return;
-            }
-
-            visibleRequests.forEach(data => {
-                const reqData = data.requestData;
-                const tr = document.createElement('tr');
-                let statusText, statusClass;
-                switch (data.status) {
-                    case 'approved': statusText = 'Onaylandı'; statusClass = 'status-approved'; break;
-                    case 'rejected': statusText = 'Rədd edildi'; statusClass = 'status-rejected'; break;
-                    default: statusText = 'Gözləmədə'; statusClass = 'status-pending';
-                }
-                
-                let actionButtons;
-                if (data.status === 'pending') {
-                    actionButtons = `<button class="btn btn-green" onclick="updateRequestStatus('${data.key}', 'approved')">Onayla</button><button class="btn btn-red" onclick="updateRequestStatus('${data.key}', 'rejected')">Rədd et</button>`;
-                } else {
-                    actionButtons = `<button class="btn btn-dark-red" onclick="archiveRequest('${data.key}')">Arxivlə</button>`;
-                }
-
-                tr.innerHTML = `<td data-label="Email">${data.userEmail}</td><td data-label="Ad/Soyad">${reqData.name} ${reqData.surname}</td><td data-label="Kart">${reqData.cardNumber}</td><td data-label="Məbləğ"><b>${parseFloat(reqData.amount).toFixed(2)} AZN</b></td><td data-label="Tarix">${new Date(data.createdAt).toLocaleString()}</td><td data-label="Status"><span class="status ${statusClass}">${statusText}</span></td><td data-label="Əməliyyat"><div class="actions-cell">${actionButtons}</div></td>`;
-                withdrawalsTableBody.appendChild(tr);
+            receipts.reverse().forEach(data => {
+                const card = document.createElement('div');
+                card.className = 'receipt-card';
+                card.innerHTML = `
+                    <img src="${data.imageUrl}" alt="Çek şəkli" onclick="window.open('${data.imageUrl}', '_blank')">
+                    <div class="receipt-info">
+                        <p><strong>Göndərən:</strong> ${data.userName || 'Naməlum'}</p>
+                        <p><strong>Email:</strong> ${data.userEmail || 'Naməlum'}</p>
+                        <p><strong>Tarix:</strong> ${new Date(data.createdAt).toLocaleString()}</p>
+                    </div>
+                    <button class="receipt-delete-btn" onclick="deleteReceipt('${data.key}', '${data.storagePath}')">Baxdım, Sil</button>
+                `;
+                grid.appendChild(card);
             });
         });
     }
-    
-    function loadUsersAndBalances() {
-        const userTableBody = document.getElementById('userTable').querySelector('tbody');
-        db.ref('users').on('value', (userSnapshot) => {
-            db.ref('balances').on('value', (balanceSnapshot) => {
-                if (!userSnapshot.exists()) { userTableBody.innerHTML = '<tr class="no-data-row"><td colspan="4" class="no-data">İstifadəçi yoxdur.</td></tr>'; return; }
-                userTableBody.innerHTML = '';
-                const allBalances = balanceSnapshot.val() || {};
-                userSnapshot.forEach(childSnapshot => {
-                    const uid = childSnapshot.key;
-                    const userData = childSnapshot.val();
-                    const userBalance = allBalances[uid] && allBalances[uid].amount ? allBalances[uid].amount : 0;
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td data-label="Ad">${userData.displayName || 'Adsız'}</td><td data-label="Email">${userData.email}</td><td data-label="Balans (AZN)"><b>${parseFloat(userBalance).toFixed(2)} AZN</b></td><td data-label="Əməliyyatlar"><div class="actions-cell"><input type="text" id="balance-input-${uid}" placeholder="+50, -20, 200" class="balance-input"><button class="btn btn-blue" onclick="applyBalanceChange('${uid}')">Tətbiq et</button><button class="btn btn-dark-red" onclick="deleteUser('${uid}', '${userData.email}')">Sil</button></div></td>`;
-                    userTableBody.appendChild(tr);
-                });
-            });
-        });
+
+    function deleteReceipt(key, storagePath) {
+        if (!confirm("Bu çeki silmək istədiyinizə əminsiniz? Bu əməliyyat şəkli də birdəfəlik siləcək.")) return;
+
+        // 1. Storage-dan şəkli sil
+        storage.refFromURL(storagePath).delete().then(() => {
+            // 2. Məlumat bazasından qeydi sil
+            db.ref('receipt_uploads/' + key).remove().then(() => {
+                alert("Çek uğurla silindi.");
+            }).catch(err => alert("Məlumat bazasından silinərkən xəta: " + err.message));
+        }).catch(err => alert("Şəkil silinərkən xəta: " + err.message));
     }
+
+    // ... (qalan bütün köhnə funksiyalar olduğu kimi qalır) ...
+    function addBalanceAndCreateHistory(userId, amountToAdd) { const amount = parseFloat(amountToAdd); if (!userId || isNaN(amount) || amount <= 0) { console.error("Düzgün istifadəçi ID və ya məbləğ daxil edilməyib."); return Promise.reject(new Error("Düzgün məbləğ daxil edilməyib.")); } const newDepositKey = db.ref('deposits').push().key; const updates = {}; updates['/deposits/' + newDepositKey] = { uid: userId, amount: amount, createdAt: firebase.database.ServerValue.TIMESTAMP }; updates['/balances/' + userId + '/amount'] = firebase.database.ServerValue.increment(amount); return db.ref().update(updates); }
+    async function updateRequestStatus(key, newStatus) { if (!confirm(`Bu sorğunu "${newStatus === 'approved' ? 'Onayla' : 'Rədd et'}" statusuna dəyişmək istəyirsiniz?`)) return; if (newStatus === 'approved') { db.ref('withdrawals/' + key).update({ status: newStatus }).then(() => alert("Sorğu təsdiqləndi.")).catch(error => alert("Xəta: " + error.message)); } else if (newStatus === 'rejected') { const withdrawalRef = db.ref('withdrawals/' + key); try { const snapshot = await withdrawalRef.once('value'); const requestData = snapshot.val(); if (!requestData || requestData.status !== 'pending') { alert("Bu sorğu artıq emal edilib və ya tapılmadı."); withdrawalRef.update({ status: newStatus }); return; } const amountToRefund = requestData.requestData.amount; const userId = requestData.uid; await db.ref('balances/' + userId + '/amount').set(firebase.database.ServerValue.increment(amountToRefund)); await withdrawalRef.update({ status: newStatus }); alert(`Sorğu rədd edildi və ${amountToRefund.toFixed(2)} AZN istifadəçinin balansına geri qaytarıldı.`); } catch (error) { alert("Sorğu rədd edilərkən xəta baş verdi: " + error.message); } } }
+    function loadSupportChats() { const chatListContainer = document.getElementById('chat-list-container'); const chatRef = db.ref('support_chats').orderByChild('last_updated'); chatRef.on('value', snapshot => { chatListContainer.innerHTML = ''; if (!snapshot.exists()) { chatListContainer.innerHTML = '<p class="no-data">Heç bir söhbət yoxdur.</p>'; return; } let chats = []; snapshot.forEach(child => { chats.push({ uid: child.key, ...child.val() }); }); chats.reverse().forEach(chatData => { const item = document.createElement('div'); item.className = 'chat-list-item'; if (chatData.uid === currentChatUid) { item.classList.add('active'); } item.innerHTML = `<span>${chatData.user_email || 'Naməlum'}</span> ${chatData.new_message_for_admin ? '<div class="new-message-indicator"></div>' : ''}`; item.onclick = () => openChat(chatData.uid, chatData.user_email); chatListContainer.appendChild(item); }); }); document.getElementById('send-reply-btn').onclick = sendAdminReply; document.getElementById('reply-input').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAdminReply(); } }; }
+    function openChat(uid, userEmail) { currentChatUid = uid; document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active')); const activeItem = [...document.querySelectorAll('.chat-list-item')].find(el => el.textContent.includes(userEmail)); if (activeItem) activeItem.classList.add('active'); document.getElementById('chat-placeholder').style.display = 'none'; document.getElementById('chat-view').style.display = 'flex'; document.getElementById('chat-view-header').textContent = `Söhbət: ${userEmail}`; const messagesContainer = document.getElementById('messages-container'); messagesContainer.innerHTML = ''; if (messagesListener) { messagesListener.off(); } db.ref(`support_chats/${uid}`).update({ new_message_for_admin: false }); const messagesRef = db.ref(`support_chats/${uid}/messages`).limitToLast(100); messagesListener = messagesRef.on('child_added', msgSnapshot => { const msg = msgSnapshot.val(); const msgDiv = document.createElement('div'); msgDiv.className = `message ${msg.sender === 'admin' ? 'admin' : 'user'}`; msgDiv.textContent = msg.text; messagesContainer.appendChild(msgDiv); messagesContainer.scrollTop = messagesContainer.scrollHeight; }); }
+    function sendAdminReply() { const input = document.getElementById('reply-input'); const text = input.value.trim(); if (text === '' || !currentChatUid) return; const messageData = { text: text, sender: 'admin', timestamp: firebase.database.ServerValue.TIMESTAMP }; db.ref(`support_chats/${currentChatUid}/messages`).push(messageData); db.ref(`support_chats/${currentChatUid}`).update({ last_message: text, last_updated: firebase.database.ServerValue.TIMESTAMP, new_message_for_admin: false, new_message_for_user_count: firebase.database.ServerValue.increment(1) }); input.value = ''; }
+    function archiveRequest(key) { if (confirm("Bu sorğunu arxivləşdirmək istəyirsiniz? Sorğu admin panelindən gizlədiləcək, amma istifadəçi tarixçəsində qalacaq.")) { db.ref('withdrawals/' + key).update({ isArchived: true }).then(() => { alert("Sorğu uğurla arxivləndi."); }).catch(error => { alert("Arxivləmə zamanı xəta baş verdi: " + error.message); }); } }
+    function deleteUser(uid, email) { if(confirm(`'${email}' istifadəçisini sil? Bu əməliyyat geri qaytarılmazdır.`)) { db.ref('users/' + uid).remove(); db.ref('balances/' + uid).remove(); }}
+    async function applyBalanceChange(uid) { const inputElement = document.getElementById(`balance-input-${uid}`); const inputValue = inputElement.value.trim().replace(',', '.'); if (inputValue === '') return alert("Zəhmət olmasa, bir dəyər daxil edin."); const changeValue = parseFloat(inputValue); if (isNaN(changeValue)) return alert("Zəhmət olmasa, düzgün rəqəm daxil edin (məsələn: 50, +50, -20)."); try { const balanceSnapshot = await db.ref('balances/' + uid).once('value'); const currentBalance = balanceSnapshot.exists() && balanceSnapshot.val().amount ? parseFloat(balanceSnapshot.val().amount) : 0; let amountAdded = 0; let finalBalance = 0; if (inputValue.startsWith('+')) { amountAdded = changeValue; finalBalance = currentBalance + amountAdded; } else if (inputValue.startsWith('-')) { finalBalance = currentBalance + changeValue; if (finalBalance < 0) finalBalance = 0; if (confirm(`İstifadəçinin balansını ${finalBalance.toFixed(2)} AZN olaraq təyin etmək istəyirsiniz? (Tarixçəyə yazılmayacaq)`)) { await db.ref('balances/' + uid).set({ amount: finalBalance }); alert("Balans uğurla yeniləndi!"); inputElement.value = ''; } return; } else { finalBalance = changeValue; amountAdded = finalBalance - currentBalance; } if (amountAdded > 0) { if (confirm(`İstifadəçinin balansına ${amountAdded.toFixed(2)} AZN əlavə edilsin?\nYeni balans: ${finalBalance.toFixed(2)} AZN`)) { await addBalanceAndCreateHistory(uid, amountAdded); alert("Balans uğurla artırıldı və tarixçəyə qeyd edildi!"); inputElement.value = ''; } } else { if (confirm(`İstifadəçinin balansını ${finalBalance.toFixed(2)} AZN olaraq təyin etmək istəyirsiniz? (Tarixçəyə yazılmayacaq)`)) { await db.ref('balances/' + uid).set({ amount: finalBalance }); alert("Balans uğurla yeniləndi!"); inputElement.value = ''; } } } catch (error) { alert("Balans yenilənərkən xəta baş verdi: " + error.message); } }
+    function loadWithdrawals() { const withdrawalsTableBody = document.getElementById('withdrawalsTable').querySelector('tbody'); db.ref('withdrawals').on('value', (snapshot) => { if (!snapshot.exists()) { withdrawalsTableBody.innerHTML = '<tr class="no-data-row"><td colspan="7" class="no-data">Heç bir sorğu yoxdur.</td></tr>'; return; } withdrawalsTableBody.innerHTML = ''; let requests = []; snapshot.forEach(child => { requests.push({ key: child.key, ...child.val() }); }); const visibleRequests = requests.filter(req => !req.isArchived); visibleRequests.sort((a, b) => { const a_is_pending = a.status === 'pending'; const b_is_pending = b.status === 'pending'; if (a_is_pending && !b_is_pending) return -1; if (!a_is_pending && b_is_pending) return 1; return b.createdAt - a.createdAt; }); if (visibleRequests.length === 0) { withdrawalsTableBody.innerHTML = '<tr class="no-data-row"><td colspan="7" class="no-data">Göstəriləcək aktiv sorğu yoxdur.</td></tr>'; return; } visibleRequests.forEach(data => { const reqData = data.requestData; const tr = document.createElement('tr'); let statusText, statusClass; switch (data.status) { case 'approved': statusText = 'Onaylandı'; statusClass = 'status-approved'; break; case 'rejected': statusText = 'Rədd edildi'; statusClass = 'status-rejected'; break; default: statusText = 'Gözləmədə'; statusClass = 'status-pending'; } let actionButtons; if (data.status === 'pending') { actionButtons = `<button class="btn btn-green" onclick="updateRequestStatus('${data.key}', 'approved')">Onayla</button><button class="btn btn-red" onclick="updateRequestStatus('${data.key}', 'rejected')">Rədd et</button>`; } else { actionButtons = `<button class="btn btn-dark-red" onclick="archiveRequest('${data.key}')">Arxivlə</button>`; } tr.innerHTML = `<td data-label="Email">${data.userEmail}</td><td data-label="Ad/Soyad">${reqData.name} ${reqData.surname}</td><td data-label="Kart">${reqData.cardNumber}</td><td data-label="Məbləğ"><b>${parseFloat(reqData.amount).toFixed(2)} AZN</b></td><td data-label="Tarix">${new Date(data.createdAt).toLocaleString()}</td><td data-label="Status"><span class="status ${statusClass}">${statusText}</span></td><td data-label="Əməliyyat"><div class="actions-cell">${actionButtons}</div></td>`; withdrawalsTableBody.appendChild(tr); }); }); }
+    function loadUsersAndBalances() { const userTableBody = document.getElementById('userTable').querySelector('tbody'); db.ref('users').on('value', (userSnapshot) => { db.ref('balances').on('value', (balanceSnapshot) => { if (!userSnapshot.exists()) { userTableBody.innerHTML = '<tr class="no-data-row"><td colspan="4" class="no-data">İstifadəçi yoxdur.</td></tr>'; return; } userTableBody.innerHTML = ''; const allBalances = balanceSnapshot.val() || {}; userSnapshot.forEach(childSnapshot => { const uid = childSnapshot.key; const userData = childSnapshot.val(); const userBalance = allBalances[uid] && allBalances[uid].amount ? allBalances[uid].amount : 0; const tr = document.createElement('tr'); tr.innerHTML = `<td data-label="Ad">${userData.displayName || 'Adsız'}</td><td data-label="Email">${userData.email}</td><td data-label="Balans (AZN)"><b>${parseFloat(userBalance).toFixed(2)} AZN</b></td><td data-label="Əməliyyatlar"><div class="actions-cell"><input type="text" id="balance-input-${uid}" placeholder="+50, -20, 200" class="balance-input"><button class="btn btn-blue" onclick="applyBalanceChange('${uid}')">Tətbiq et</button><button class="btn btn-dark-red" onclick="deleteUser('${uid}', '${userData.email}')">Sil</button></div></td>`; userTableBody.appendChild(tr); }); }); }); }
 </script>
 </body>
 </html>
