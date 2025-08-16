@@ -38,19 +38,13 @@
   #reply-input { flex-grow: 1; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 8px; color: white; }
   #send-reply-btn { background: var(--purple); color: white; border: none; padding: 0 16px; border-radius: 6px; margin-left: 8px; cursor: pointer; font-weight: bold; }
   #chat-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); }
-
-  /* YENİ - AXTARIŞ XANASI ÜÇÜN STİL */
-  #userSearchInput {
-    width: 100%;
-    padding: 8px 12px;
-    margin-bottom: 12px;
-    background-color: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 6px;
-    color: var(--text-main);
-    font-size: 1rem;
-    box-sizing: border-box;
-  }
+  #userSearchInput { width: 100%; padding: 8px 12px; margin-bottom: 12px; background-color: #1e293b; border: 1px solid #334155; border-radius: 6px; color: var(--text-main); font-size: 1rem; box-sizing: border-box; }
+  
+  /* YENİ - DASHBOARD STİLLƏRİ */
+  #dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .stat-card { background: var(--bg-section); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; text-align: center; }
+  .stat-value { font-size: 2rem; font-weight: 700; margin-bottom: 4px; color: var(--text-main); }
+  .stat-label { font-size: 0.9rem; color: var(--text-muted); }
 
   @media screen and (max-width: 768px) {
     body { padding: 10px; }
@@ -73,6 +67,29 @@
     <div id="main-content" style="display: none;">
       <h1 id="admin-welcome"></h1>
       
+      <div id="dashboard-grid" class="section">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total-users">0</div>
+          <div class="stat-label">Ümumi İstifadəçi</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total-balance">0.00</div>
+          <div class="stat-label">Sistemdəki Balans (AZN)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-pending-reqs">0</div>
+          <div class="stat-label">Gözləyən Sorğu</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-pending-amount">0.00</div>
+          <div class="stat-label">Gözləyən Məbləğ (AZN)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-unread-msgs">0</div>
+          <div class="stat-label">Oxunmamış Mesaj</div>
+        </div>
+      </div>
+
       <div class="section">
         <h2 style="margin:0;">Dəstək Mərkəzi</h2>
         <div id="support-center">
@@ -119,7 +136,7 @@
     const db = firebase.database();
     let currentChatUid = null;
     let messagesListener = null;
-    let masterUserList = []; // YENİ: Bütün istifadəçiləri yadda saxlamaq üçün
+    let masterUserList = [];
 
     auth.onAuthStateChanged(user => {
         const mainContent = document.getElementById('main-content');
@@ -136,10 +153,61 @@
     document.getElementById('adminLoginBtn').addEventListener('click', () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()));
     
     function loadAllData() {
+        loadDashboardStats(); // YENİ
         loadSupportChats();
         loadWithdrawals();
         loadUsersAndBalances();
     }
+
+    // YENİ - DASHBOARD STATİSTİKA FUNKSİYASI
+    function loadDashboardStats() {
+        // Ümumi istifadəçi sayı
+        db.ref('users').on('value', snapshot => {
+            document.getElementById('stat-total-users').textContent = snapshot.exists() ? snapshot.numChildren() : 0;
+        });
+
+        // Sistemdəki ümumi balans
+        db.ref('balances').on('value', snapshot => {
+            let totalBalance = 0;
+            if (snapshot.exists()) {
+                snapshot.forEach(child => {
+                    totalBalance += child.val().amount || 0;
+                });
+            }
+            document.getElementById('stat-total-balance').textContent = totalBalance.toFixed(2);
+        });
+
+        // Gözləyən sorğular və məbləğ
+        db.ref('withdrawals').on('value', snapshot => {
+            let pendingCount = 0;
+            let pendingAmount = 0;
+            if (snapshot.exists()) {
+                snapshot.forEach(child => {
+                    const req = child.val();
+                    if (req.status === 'pending' && !req.isArchived) {
+                        pendingCount++;
+                        pendingAmount += req.requestData.amount || 0;
+                    }
+                });
+            }
+            document.getElementById('stat-pending-reqs').textContent = pendingCount;
+            document.getElementById('stat-pending-amount').textContent = pendingAmount.toFixed(2);
+        });
+
+        // Oxunmamış mesajlar
+        db.ref('support_chats').on('value', snapshot => {
+            let unreadCount = 0;
+            if (snapshot.exists()) {
+                snapshot.forEach(child => {
+                    if (child.val().new_message_for_admin) {
+                        unreadCount++;
+                    }
+                });
+            }
+            document.getElementById('stat-unread-msgs').textContent = unreadCount;
+        });
+    }
+
 
     function addBalanceAndCreateHistory(userId, amountToAdd) {
         const amount = parseFloat(amountToAdd);
@@ -147,28 +215,17 @@
             console.error("Düzgün istifadəçi ID və ya məbləğ daxil edilməyib.");
             return Promise.reject(new Error("Düzgün məbləğ daxil edilməyib."));
         }
-    
         const newDepositKey = db.ref('deposits').push().key;
         const updates = {};
-    
-        updates['/deposits/' + newDepositKey] = {
-            uid: userId,
-            amount: amount,
-            createdAt: firebase.database.ServerValue.TIMESTAMP
-        };
-    
+        updates['/deposits/' + newDepositKey] = { uid: userId, amount: amount, createdAt: firebase.database.ServerValue.TIMESTAMP };
         updates['/balances/' + userId + '/amount'] = firebase.database.ServerValue.increment(amount);
-    
         return db.ref().update(updates);
     }
 
     async function updateRequestStatus(key, newStatus) {
         if (!confirm(`Bu sorğunu "${newStatus === 'approved' ? 'Onayla' : 'Rədd et'}" statusuna dəyişmək istəyirsiniz?`)) return;
-
         if (newStatus === 'approved') {
-            db.ref('withdrawals/' + key).update({ status: newStatus })
-                .then(() => alert("Sorğu təsdiqləndi."))
-                .catch(error => alert("Xəta: " + error.message));
+            db.ref('withdrawals/' + key).update({ status: newStatus }).then(() => alert("Sorğu təsdiqləndi.")).catch(error => alert("Xəta: " + error.message));
         } 
         else if (newStatus === 'rejected') {
             const withdrawalRef = db.ref('withdrawals/' + key);
@@ -241,10 +298,7 @@
         if (text === '' || !currentChatUid) return;
         const messageData = { text: text, sender: 'admin', timestamp: firebase.database.ServerValue.TIMESTAMP };
         db.ref(`support_chats/${currentChatUid}/messages`).push(messageData);
-        db.ref(`support_chats/${currentChatUid}`).update({
-            last_message: text, last_updated: firebase.database.ServerValue.TIMESTAMP, new_message_for_admin: false,
-            new_message_for_user_count: firebase.database.ServerValue.increment(1)
-        });
+        db.ref(`support_chats/${currentChatUid}`).update({ last_message: text, last_updated: firebase.database.ServerValue.TIMESTAMP, new_message_for_admin: false, new_message_for_user_count: firebase.database.ServerValue.increment(1) });
         input.value = '';
     }
 
@@ -334,8 +388,6 @@
         });
     }
     
-    // ================= İSTİFADƏÇİ SİYAHISI VƏ AXTARIŞ ÜÇÜN YENİLƏNMİŞ KOD =================
-    
     function displayUsers(userList) {
         const userTableBody = document.getElementById('userTable').querySelector('tbody');
         userTableBody.innerHTML = '';
@@ -345,17 +397,7 @@
         }
         userList.forEach(userData => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td data-label="Ad">${userData.displayName || 'Adsız'}</td>
-                <td data-label="Email">${userData.email}</td>
-                <td data-label="Balans (AZN)"><b>${parseFloat(userData.balance).toFixed(2)} AZN</b></td>
-                <td data-label="Əməliyyatlar">
-                    <div class="actions-cell">
-                        <input type="text" id="balance-input-${userData.uid}" placeholder="+50, -20, 200" class="balance-input">
-                        <button class="btn btn-blue" onclick="applyBalanceChange('${userData.uid}')">Tətbiq et</button>
-                        <button class="btn btn-dark-red" onclick="deleteUser('${userData.uid}', '${userData.email}')">Sil</button>
-                    </div>
-                </td>`;
+            tr.innerHTML = `<td data-label="Ad">${userData.displayName || 'Adsız'}</td><td data-label="Email">${userData.email}</td><td data-label="Balans (AZN)"><b>${parseFloat(userData.balance).toFixed(2)} AZN</b></td><td data-label="Əməliyyatlar"><div class="actions-cell"><input type="text" id="balance-input-${userData.uid}" placeholder="+50, -20, 200" class="balance-input"><button class="btn btn-blue" onclick="applyBalanceChange('${userData.uid}')">Tətbiq et</button><button class="btn btn-dark-red" onclick="deleteUser('${userData.uid}', '${userData.email}')">Sil</button></div></td>`;
             userTableBody.appendChild(tr);
         });
     }
@@ -363,12 +405,11 @@
     function loadUsersAndBalances() {
         const usersRef = db.ref('users');
         const balancesRef = db.ref('balances');
-
         usersRef.on('value', (userSnapshot) => {
             balancesRef.on('value', (balanceSnapshot) => {
-                masterUserList = []; // Hər yeniləmədə sıfırla
+                masterUserList = [];
                 if (!userSnapshot.exists()) {
-                    displayUsers([]); // Cədvəli boş göstər
+                    displayUsers([]);
                     return;
                 }
                 const allBalances = balanceSnapshot.val() || {};
@@ -376,14 +417,8 @@
                     const uid = childSnapshot.key;
                     const userData = childSnapshot.val();
                     const userBalance = allBalances[uid] && allBalances[uid].amount ? allBalances[uid].amount : 0;
-                    masterUserList.push({
-                        uid: uid,
-                        displayName: userData.displayName,
-                        email: userData.email,
-                        balance: userBalance
-                    });
+                    masterUserList.push({ uid: uid, displayName: userData.displayName, email: userData.email, balance: userBalance });
                 });
-                // Siyahını ilkin olaraq göstər və axtarış xanasını da yoxla
                 document.getElementById('userSearchInput').dispatchEvent(new Event('input'));
             });
         });
@@ -392,7 +427,7 @@
     document.getElementById('userSearchInput').addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         if (!searchTerm) {
-            displayUsers(masterUserList); // Axtarış boşdursa, bütün siyahını göstər
+            displayUsers(masterUserList);
             return;
         }
         const filteredList = masterUserList.filter(user => {
@@ -402,7 +437,6 @@
         });
         displayUsers(filteredList);
     });
-
 </script>
 </body>
 </html>
