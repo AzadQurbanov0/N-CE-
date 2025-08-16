@@ -129,6 +129,32 @@
         loadUsersAndBalances();
     }
 
+    // ================= YENİ FUNKSİYA: BALANSI ARTIR VƏ TARİXÇƏ YARAT =================
+    function addBalanceAndCreateHistory(userId, amountToAdd) {
+        const amount = parseFloat(amountToAdd);
+        if (!userId || isNaN(amount) || amount <= 0) {
+            console.error("Düzgün istifadəçi ID və ya məbləğ daxil edilməyib.");
+            return Promise.reject(new Error("Düzgün məbləğ daxil edilməyib."));
+        }
+    
+        const newDepositKey = db.ref('deposits').push().key;
+        const updates = {};
+    
+        // Tarixçəyə yazılacaq məlumat
+        updates['/deposits/' + newDepositKey] = {
+            uid: userId,
+            amount: amount,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        };
+    
+        // Balansa əlavə ediləcək məbləğ (ən təhlükəsiz üsul)
+        updates['/balances/' + userId + '/amount'] = firebase.database.ServerValue.increment(amount);
+    
+        // Hər iki yeniləməni eyni anda Firebase-ə göndəririk
+        return db.ref().update(updates);
+    }
+    // =================================================================================
+
     async function updateRequestStatus(key, newStatus) {
         if (!confirm(`Bu sorğunu "${newStatus === 'approved' ? 'Onayla' : 'Rədd et'}" statusuna dəyişmək istəyirsiniz?`)) return;
 
@@ -139,28 +165,18 @@
         } 
         else if (newStatus === 'rejected') {
             const withdrawalRef = db.ref('withdrawals/' + key);
-            
             try {
                 const snapshot = await withdrawalRef.once('value');
                 const requestData = snapshot.val();
-
                 if (!requestData || requestData.status !== 'pending') {
                     alert("Bu sorğu artıq emal edilib və ya tapılmadı.");
                     withdrawalRef.update({ status: newStatus });
                     return;
                 }
-
                 const amountToRefund = requestData.requestData.amount;
                 const userId = requestData.uid;
-                const balanceRef = db.ref('balances/' + userId);
-
-                await balanceRef.transaction(currentData => {
-                    let currentAmount = (currentData && currentData.amount) ? currentData.amount : 0;
-                    return { amount: currentAmount + amountToRefund };
-                });
-
+                await db.ref('balances/' + userId + '/amount').set(firebase.database.ServerValue.increment(amountToRefund));
                 await withdrawalRef.update({ status: newStatus });
-                
                 alert(`Sorğu rədd edildi və ${amountToRefund.toFixed(2)} AZN istifadəçinin balansına geri qaytarıldı.`);
             } catch (error) {
                 alert("Sorğu rədd edilərkən xəta baş verdi: " + error.message);
@@ -176,8 +192,7 @@
             if (!snapshot.exists()) { chatListContainer.innerHTML = '<p class="no-data">Heç bir söhbət yoxdur.</p>'; return; }
             let chats = [];
             snapshot.forEach(child => { chats.push({ uid: child.key, ...child.val() }); });
-            chats.reverse();
-            chats.forEach(chatData => {
+            chats.reverse().forEach(chatData => {
                 const item = document.createElement('div');
                 item.className = 'chat-list-item';
                 if (chatData.uid === currentChatUid) { item.classList.add('active'); }
@@ -229,25 +244,57 @@
     function deleteRequest(key, msg) { if(confirm(msg || "Sorğunu silmək istəyirsiniz?")) db.ref('withdrawals/' + key).remove(); }
     function deleteUser(uid, email) { if(confirm(`'${email}' istifadəçisini sil? Bu əməliyyat geri qaytarılmazdır.`)) { db.ref('users/' + uid).remove(); db.ref('balances/' + uid).remove(); }}
     
+    // ================= KÖHNƏ FUNKSİYA YENİSİ İLƏ ƏVƏZ EDİLDİ =================
     async function applyBalanceChange(uid) {
         const inputElement = document.getElementById(`balance-input-${uid}`);
-        const inputValue = inputElement.value.trim();
-        if (inputValue === '') { return alert("Zəhmət olmasa, bir dəyər daxil edin."); }
+        const inputValue = inputElement.value.trim().replace(',', '.');
+        if (inputValue === '') return alert("Zəhmət olmasa, bir dəyər daxil edin.");
+
+        const changeValue = parseFloat(inputValue);
+        if (isNaN(changeValue)) return alert("Zəhmət olmasa, düzgün rəqəm daxil edin (məsələn: 50, +50, -20).");
+
         try {
             const balanceSnapshot = await db.ref('balances/' + uid).once('value');
-            let currentBalance = balanceSnapshot.exists() && balanceSnapshot.val().amount ? parseFloat(balanceSnapshot.val().amount) : 0;
-            if (isNaN(currentBalance)) currentBalance = 0;
-            const changeValue = parseFloat(inputValue.replace(',', '.'));
-            if (isNaN(changeValue)) { return alert("Zəhmət olmasa, düzgün rəqəm daxil edin (məsələn: 50, +50, -20)."); }
-            let newBalance = (inputValue.startsWith('+') || inputValue.startsWith('-')) ? currentBalance + changeValue : changeValue;
-            if (newBalance < 0) newBalance = 0;
-            if (confirm(`İstifadəçinin balansını ${newBalance.toFixed(2)} AZN olaraq təyin etmək istəyirsiniz?`)) {
-                await db.ref('balances/' + uid).set({ amount: newBalance });
-                alert("Balans uğurla yeniləndi!");
-                inputElement.value = '';
+            const currentBalance = balanceSnapshot.exists() && balanceSnapshot.val().amount ? parseFloat(balanceSnapshot.val().amount) : 0;
+            
+            let amountAdded = 0;
+            let finalBalance = 0;
+
+            if (inputValue.startsWith('+')) {
+                amountAdded = changeValue;
+                finalBalance = currentBalance + amountAdded;
+            } else if (inputValue.startsWith('-')) {
+                finalBalance = currentBalance + changeValue; // changeValue onsuz da mənfidir
+                if (finalBalance < 0) finalBalance = 0;
+                if (confirm(`İstifadəçinin balansını ${finalBalance.toFixed(2)} AZN olaraq təyin etmək istəyirsiniz? (Tarixçəyə yazılmayacaq)`)) {
+                    await db.ref('balances/' + uid).set({ amount: finalBalance });
+                    alert("Balans uğurla yeniləndi!");
+                    inputElement.value = '';
+                }
+                return; 
+            } else {
+                finalBalance = changeValue;
+                amountAdded = finalBalance - currentBalance;
             }
-        } catch (error) { alert("Balans yenilənərkən xəta baş verdi: " + error.message); }
+
+            if (amountAdded > 0) {
+                if (confirm(`İstifadəçinin balansına ${amountAdded.toFixed(2)} AZN əlavə edilsin?\nYeni balans: ${finalBalance.toFixed(2)} AZN`)) {
+                    await addBalanceAndCreateHistory(uid, amountAdded);
+                    alert("Balans uğurla artırıldı və tarixçəyə qeyd edildi!");
+                    inputElement.value = '';
+                }
+            } else { // Mütləq rəqəm daxil edilib və bu, balansı azaldır
+                if (confirm(`İstifadəçinin balansını ${finalBalance.toFixed(2)} AZN olaraq təyin etmək istəyirsiniz? (Tarixçəyə yazılmayacaq)`)) {
+                    await db.ref('balances/' + uid).set({ amount: finalBalance });
+                    alert("Balans uğurla yeniləndi!");
+                    inputElement.value = '';
+                }
+            }
+        } catch (error) {
+            alert("Balans yenilənərkən xəta baş verdi: " + error.message);
+        }
     }
+    // ========================================================================
 
     function loadWithdrawals() {
         const withdrawalsTableBody = document.getElementById('withdrawalsTable').querySelector('tbody');
