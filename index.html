@@ -156,8 +156,6 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
-    let currentChatUid = null;
-    let messagesListener = null;
     let masterUserList = [];
     let modalMessagesListener = null;
 
@@ -183,6 +181,14 @@
     }
     
     document.getElementById('sendAnnouncementBtn').addEventListener('click', sendAnnouncement);
+    document.querySelector('.tabs').addEventListener('click', e => {
+        if(e.target.classList.contains('tab-btn')) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            e.target.classList.add('active');
+            document.getElementById('tab-content-' + e.target.dataset.tab).classList.add('active');
+        }
+    });
 
     function sendAnnouncement() {
         const textArea = document.getElementById('announcement-textarea');
@@ -250,12 +256,12 @@
             reactivateBtn.onclick = () => suspendUser(uid, false);
             document.getElementById('modal-apply-balance-btn').onclick = () => applyBalanceChange(uid, 'modal-balance-input');
             let allTransactions = [];
-            if(depositsSnap.exists()) depositsSnap.forEach(c => allTransactions.push({ ...c.val(), type: 'deposit', key: c.key }));
-            if(withdrawalsSnap.exists()) withdrawalsSnap.forEach(c => allTransactions.push({ ...c.val(), type: 'withdrawal', key: c.key }));
+            if(depositsSnap.exists()) depositsSnap.forEach(c => allTransactions.push({ ...c.val(), type: 'deposit' }));
+            if(withdrawalsSnap.exists()) withdrawalsSnap.forEach(c => allTransactions.push({ ...c.val(), type: 'withdrawal' }));
             allTransactions.sort((a,b) => b.createdAt - a.createdAt);
             const transactionsList = document.getElementById('modal-transactions-list');
             transactionsList.innerHTML = '';
-            if (allTransactions.length > 0) allTransactions.forEach(t => { const i = document.createElement('div'); i.className = 'past-announcement-item'; if(t.type === 'deposit') i.innerHTML = `<p><b>+${t.amount.toFixed(2)} AZN</b> - Mədaxil</p><div class="meta">${new Date(t.createdAt).toLocaleString()}</div>`; else i.innerHTML = `<p><b>-${t.requestData.amount.toFixed(2)} AZN</b> - Çıxarış (${t.status})</p><div class="meta">${new Date(t.createdAt).toLocaleString()}</div>`; transactionsList.appendChild(i); });
+            if (allTransactions.length > 0) allTransactions.forEach(t => { const i = document.createElement('div'); i.className = 'past-announcement-item'; if(t.type === 'deposit') i.innerHTML = `<p><b>+${t.amount.toFixed(2)} AZN</b> - Mədaxil</p><div class="meta">${new Date(t.createdAt).toLocaleString()}</div>`; else { const cardInfo = t.requestData.cardNumber ? ` - Kart: ${t.requestData.cardNumber}` : ''; i.innerHTML = `<p><b>-${t.requestData.amount.toFixed(2)} AZN</b> - Çıxarış (${t.status})${cardInfo}</p><div class="meta">${new Date(t.createdAt).toLocaleString()}</div>`; } transactionsList.appendChild(i); });
             else transactionsList.innerHTML = '<p class="no-data">Əməliyyat tapılmadı.</p>';
             const messagesContainer = document.getElementById('modal-messages');
             messagesContainer.innerHTML = '';
@@ -315,16 +321,7 @@
         const filteredList = searchTerm ? masterUserList.filter(u => (u.displayName||'').toLowerCase().includes(searchTerm) || (u.email||'').toLowerCase().includes(searchTerm)) : masterUserList;
         displayUsers(filteredList);
     });
-
-    document.querySelector('.tabs').addEventListener('click', e => {
-        if(e.target.classList.contains('tab-btn')) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            e.target.classList.add('active');
-            document.getElementById('tab-content-' + e.target.dataset.tab).classList.add('active');
-        }
-    });
-
+    
     async function applyBalanceChange(uid, inputId) {
         const inputElement = document.getElementById(inputId);
         const inputValue = inputElement.value.trim().replace(',', '.');
@@ -344,7 +341,7 @@
     }
     
     function sendAdminReply(uid, inputId) { const input = document.getElementById(inputId); const text = input.value.trim(); if (text === '' || !uid) return; const msgData = { text, sender: 'admin', timestamp: firebase.database.ServerValue.TIMESTAMP }; db.ref(`support_chats/${uid}/messages`).push(msgData); db.ref(`support_chats/${uid}`).update({ last_message: text, last_updated: firebase.database.ServerValue.TIMESTAMP, new_message_for_admin: false, new_message_for_user_count: firebase.database.ServerValue.increment(1) }); input.value = ''; setTimeout(() => openUserDetails(uid), 300); }
-    function loadWithdrawals() { const t = document.getElementById('withdrawalsTable').querySelector('tbody'); db.ref('withdrawals').on('value', s => { if (!s.exists()) { t.innerHTML = '<tr class="no-data-row"><td colspan="7">Heç bir sorğu yoxdur.</td></tr>'; return; } t.innerHTML = ''; let r = []; s.forEach(c => r.push({ key: c.key, ...c.val() })); const v = r.filter(req => !req.isArchived); v.sort((a, b) => { const ap = a.status === 'pending', bp = b.status === 'pending'; if (ap && !bp) return -1; if (!ap && bp) return 1; return b.createdAt - a.createdAt; }); if (v.length === 0) { t.innerHTML = '<tr class="no-data-row"><td colspan="7">Aktiv sorğu yoxdur.</td></tr>'; return; } v.forEach(d => { const rd = d.requestData; const tr = document.createElement('tr'); let st, sc; switch (d.status) { case 'approved': st = 'Onaylandı'; sc = 'status-approved'; break; case 'rejected': st = 'Rədd edildi'; sc = 'status-rejected'; break; default: st = 'Gözləmədə'; sc = 'status-pending'; } let ab; if (d.status === 'pending') ab = `<button class="btn btn-green" onclick="updateRequestStatus('${d.key}','approved')">Onayla</button><button class="btn btn-red" onclick="updateRequestStatus('${d.key}','rejected')">Rədd et</button>`; else ab = `<button class="btn btn-dark-red" onclick="archiveRequest('${d.key}')">Arxivlə</button>`; tr.innerHTML = `<td data-label="Email">${d.userEmail}</td><td data-label="Ad/Soyad">${rd.name} ${rd.surname}</td><td data-label="Kart">${rd.cardNumber}</td><td data-label="Məbləğ"><b>${parseFloat(rd.amount).toFixed(2)} AZN</b></td><td data-label="Tarix">${new Date(d.createdAt).toLocaleString()}</td><td data-label="Status"><span class="status ${sc}">${st}</span></td><td data-label="Əməliyyat"><div class="actions-cell">${ab}</div></td>`; t.appendChild(tr); }); }); }
+    function loadWithdrawals() { const t = document.getElementById('withdrawalsTable').querySelector('tbody'); db.ref('withdrawals').on('value', s => { if (!s.exists()) { t.innerHTML = '<tr class="no-data-row"><td colspan="7">Heç bir sorğu yoxdur.</td></tr>'; return; } t.innerHTML = ''; let r = []; s.forEach(c => r.push({ key: c.key, ...c.val() })); const v = r.filter(req => !req.isArchived); v.sort((a, b) => { const ap = a.status === 'pending', bp = b.status === 'pending'; if (ap && !bp) return -1; if (!ap && bp) return 1; return b.createdAt - a.createdAt; }); if (v.length === 0) { t.innerHTML = '<tr class="no-data-row"><td colspan="7">Aktiv sorğu yoxdur.</td></tr>'; return; } v.forEach(d => { const rd = d.requestData || {}; const tr = document.createElement('tr'); let st, sc; switch (d.status) { case 'approved': st = 'Onaylandı'; sc = 'status-approved'; break; case 'rejected': st = 'Rədd edildi'; sc = 'status-rejected'; break; default: st = 'Gözləmədə'; sc = 'status-pending'; } let ab; if (d.status === 'pending') ab = `<button class="btn btn-green" onclick="updateRequestStatus('${d.key}','approved')">Onayla</button><button class="btn btn-red" onclick="updateRequestStatus('${d.key}','rejected')">Rədd et</button>`; else ab = `<button class="btn btn-dark-red" onclick="archiveRequest('${d.key}')">Arxivlə</button>`; tr.innerHTML = `<td data-label="Email">${d.userEmail || ''}</td><td data-label="Ad/Soyad">${rd.name || ''} ${rd.surname || ''}</td><td data-label="Kart">${rd.cardNumber || ''}</td><td data-label="Məbləğ"><b>${parseFloat(rd.amount || 0).toFixed(2)} AZN</b></td><td data-label="Tarix">${new Date(d.createdAt).toLocaleString()}</td><td data-label="Status"><span class="status ${sc}">${st}</span></td><td data-label="Əməliyyat"><div class="actions-cell">${ab}</div></td>`; t.appendChild(tr); }); }); }
     function archiveRequest(key) { if (confirm("Bu sorğunu arxivləşdirmək istəyirsiniz?")) db.ref(`withdrawals/${key}`).update({ isArchived: true }).then(() => alert("Sorğu arxivləndi.")).catch(e => alert("Xəta: " + e.message)); }
 </script>
 </body>
