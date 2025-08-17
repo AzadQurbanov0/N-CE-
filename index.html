@@ -290,7 +290,6 @@
             });
         });
     }
-
     function resetStatusForm() {
         const form = document.getElementById('statusForm');
         form.reset();
@@ -298,7 +297,6 @@
         document.getElementById('saveStatusBtn').textContent = 'Yeni Status Əlavə Et';
         document.getElementById('cancelStatusUpdate').style.display = 'none';
     }
-
     function editStatus(key, jsonData) {
         const data = JSON.parse(jsonData);
         document.getElementById('statusKey').value = key;
@@ -310,7 +308,6 @@
         document.getElementById('cancelStatusUpdate').style.display = 'inline-block';
         window.scrollTo(0, document.getElementById('statusForm').offsetTop);
     }
-
     function deleteStatus(key) {
         if (confirm("Bu statusu silmək istədiyinizə əminsiniz?")) {
             db.ref('system_status/' + key).remove()
@@ -318,7 +315,6 @@
                 .catch(error => alert("Xəta: " + error.message));
         }
     }
-
     document.getElementById('statusForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const key = document.getElementById('statusKey').value;
@@ -339,10 +335,9 @@
             resetStatusForm();
         }).catch(error => alert("Xəta: " + error.message));
     });
-
     document.getElementById('cancelStatusUpdate').addEventListener('click', resetStatusForm);
 
-    /* === PARA YAĞIŞI İDARƏETMƏSİ (DƏYİŞİKLİK EDİLDİ) === */
+    /* === PARA YAĞIŞI İDARƏETMƏSİ === */
     function initializeMoneyRainPanel() {
         const moneyRainRef = db.ref('moneyRainEvent');
         const statusEl = document.getElementById('moneyRainStatus');
@@ -383,11 +378,10 @@
         if (!confirm(`${amount.toFixed(2)} AZN məbləğində Para Yağışını başlatmaq istədiyinizə əminsiniz?`)) {
             return;
         }
-        // NAN XƏTASININ DÜZƏLİŞİ: ServerValue.TIMESTAMP əvəzinə Date.now() istifadə edilir.
         const eventData = {
             status: 'pending',
             totalAmount: amount,
-            startTime: Date.now() + 30000, // DÜZƏLİŞ BURADADIR
+            startTime: Date.now() + 30000,
             duration: duration * 1000,
             participants: null,
             leaderboard: null
@@ -400,12 +394,11 @@
                     calculateResultsFromAdmin(event);
                 }
             });
-        }, 30000 + (duration * 1000));
+        }, 30000 + (duration * 1000) + 1000); // ehtiyat üçün 1 saniyə əlavə
         db.ref('moneyRainEvent').set(eventData)
             .then(() => alert("Para Yağışı başladılır! İstifadəçilər 30 saniyə sonra oyuna başlaya biləcəklər."))
             .catch(error => alert("Xəta: " + error.message));
     }
-
     function stopMoneyRain() {
         if (!confirm("Para Yağışını dayandırmaq istədiyinizə əminsiniz?")) {
             return;
@@ -414,7 +407,7 @@
             .then(() => alert("Para Yağışı uğurla dayandırıldı."))
             .catch(error => alert("Xəta: " + error.message));
     }
-    
+    // DƏYİŞİKLİK: Nəticə hesablanarkən tarixçəyə qeyd əlavə edilir
     function calculateResultsFromAdmin(eventData) {
         const participants = eventData.participants || {};
         const totalAmount = eventData.totalAmount;
@@ -422,21 +415,33 @@
         Object.values(participants).forEach(p => { totalScore += p.score; });
         if (totalScore === 0) {
             db.ref('moneyRainEvent/status').set('finished');
+            setTimeout(() => { db.ref('moneyRainEvent').update({ status: 'idle' }); }, 15000);
             return;
         }
         const leaderboard = {};
-        const balanceUpdates = {};
+        const allUpdates = {}; // Balans və tarixçə üçün ümumi yeniləmə obyekti
         for (const uid in participants) {
             const participant = participants[uid];
             const reward = (participant.score / totalScore) * totalAmount;
-            leaderboard[uid] = { displayName: participant.displayName, score: participant.score, reward: parseFloat(reward.toFixed(2)) };
-            balanceUpdates[`/balances/${uid}/amount`] = firebase.database.ServerValue.increment(parseFloat(reward.toFixed(2)));
+            const finalReward = parseFloat(reward.toFixed(2));
+            if (finalReward > 0) {
+                leaderboard[uid] = { displayName: participant.displayName, score: participant.score, reward: finalReward };
+                // Balansı yenilə
+                allUpdates[`/balances/${uid}/amount`] = firebase.database.ServerValue.increment(finalReward);
+                // Tarixçə üçün yeni qeyd yarat
+                const newDepositKey = db.ref('deposits').push().key;
+                allUpdates[`/deposits/${newDepositKey}`] = {
+                    uid: uid,
+                    amount: finalReward,
+                    createdAt: firebase.database.ServerValue.TIMESTAMP,
+                    type: 'deposit',
+                    description: 'Para Yağışı Mükafatı'
+                };
+            }
         }
-        db.ref().update(balanceUpdates);
-        db.ref('moneyRainEvent').update({
-            leaderboard: leaderboard,
-            status: 'finished'
-        });
+        allUpdates[`/moneyRainEvent/leaderboard`] = leaderboard;
+        allUpdates[`/moneyRainEvent/status`] = 'finished';
+        db.ref().update(allUpdates); // Bütün məlumatları bir dəfəyə yaz
         setTimeout(() => {
             db.ref('moneyRainEvent').update({ status: 'idle' });
         }, 30000);
