@@ -11,7 +11,7 @@
   h1,h2{margin:0 0 12px 0; text-align: center;}
   .section{background:var(--bg-section);border:1px solid var(--border-color);border-radius:10px;padding:12px;margin-bottom:16px;}
   table{width:100%;border-collapse:collapse;margin-top:8px;}
-  th,td{padding:8px 10px;border:1px solid rgba(255,2ess55,255,0.06);text-align:center;font-size:14px; word-break: break-word; vertical-align: middle;}
+  th,td{padding:8px 10px;border:1px solid rgba(255,255,255,0.06);text-align:center;font-size:14px; word-break: break-word; vertical-align: middle;}
   th{background:rgba(255,255,255,0.03);}
   .no-data{opacity:0.7;text-align:center;padding:18px;color:var(--text-muted);}
   #login-container { text-align: center; padding-top: 20vh;}
@@ -48,15 +48,16 @@
   .past-announcement-item { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start; }
   .past-announcement-item p { margin: 0; white-space: pre-wrap; word-break: break-word; }
   .past-announcement-item .meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; }
-  .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
-  .modal-content { background-color: var(--bg-section); margin: auto; padding: 20px; border: 1px solid var(--border-color); width: 90%; max-width: 700px; border-radius: 10px; position: relative; }
-  .close-btn { color: var(--text-muted); position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
-  .close-btn:hover { color: var(--text-main); }
-  #history-modal-title { margin-bottom: 20px; text-align: center; }
-  #history-table-body .no-data { padding: 40px 0; }
+  #statusForm { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color); display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+  #statusForm .full-width { grid-column: 1 / -1; }
+  #statusForm label { font-size: 0.9rem; margin-bottom: 5px; display: block; color: var(--text-muted); }
+  #statusForm input, #statusForm select, #statusForm textarea { width: 100%; box-sizing: border-box; background-color: #1e293b; border: 1px solid #334155; border-radius: 6px; color: var(--text-main); font-size: 1rem; padding: 8px; }
+  .form-buttons { grid-column: 1 / -1; display: flex; gap: 10px; justify-content: flex-end; }
+  .status-indicator-admin { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+  .indicator-active { background-color: var(--green); } .indicator-delayed { background-color: var(--yellow); } .indicator-paused { background-color: var(--red); }
   @media screen and (max-width: 768px) {
     body { padding: 10px; }
-    #support-center { flex-direction: column; height: auto; max-height: none; }
+    #support-center, #statusForm { flex-direction: column; display: flex; }
     #chat-list-container { flex-basis: 200px; }
     table, thead, tbody, th, td, tr { display: block; }
     thead tr { position: absolute; top: -9999px; left: -9999px; }
@@ -66,6 +67,7 @@
     td:before { content: attr(data-label); position: absolute; left: 10px; width: 45%; padding-right: 10px; white-space: nowrap; text-align: left; font-weight: bold; opacity: 0.8; }
     .actions-cell { flex-direction: column; align-items: stretch; padding: 10px; gap: 8px; }
     .balance-input, .btn { width: 100%; box-sizing: border-box; padding: 8px; margin: 0; }
+    #statusForm { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -74,13 +76,47 @@
     <div id="login-container"><h1>Admin Panel</h1><button id="adminLoginBtn">Google ilə Daxil Ol</button></div>
     <div id="main-content" style="display: none;">
       <h1 id="admin-welcome"></h1>
-      
       <div id="dashboard-grid" class="section">
         <div class="stat-card"><div class="stat-value" id="stat-total-users">0</div><div class="stat-label">Ümumi İstifadəçi</div></div>
         <div class="stat-card"><div class="stat-value" id="stat-total-balance">0.00</div><div class="stat-label">Sistemdəki Balans (AZN)</div></div>
         <div class="stat-card"><div class="stat-value" id="stat-pending-reqs">0</div><div class="stat-label">Gözləyən Sorğu</div></div>
         <div class="stat-card"><div class="stat-value" id="stat-pending-amount">0.00</div><div class="stat-label">Gözləyən Məbləğ (AZN)</div></div>
         <div class="stat-card"><div class="stat-value" id="stat-unread-msgs">0</div><div class="stat-label">Oxunmamış Mesaj</div></div>
+      </div>
+
+      <div class="section">
+        <h2 style="margin:0;">Sistem Vəziyyətini İdarə Et</h2>
+        <table id="statusManagementTable">
+            <thead><tr><th>Sıra</th><th>Başlıq</th><th>Açıqlama</th><th>Vəziyyət</th><th>Əməliyyatlar</th></tr></thead>
+            <tbody><tr class="no-data-row"><td colspan="5" class="no-data">Status yoxdur.</td></tr></tbody>
+        </table>
+        <form id="statusForm">
+            <input type="hidden" id="statusKey">
+            <div class="full-width">
+                <label for="statusLabel">Başlıq</label>
+                <input type="text" id="statusLabel" required>
+            </div>
+            <div class="full-width">
+                <label for="statusText">Açıqlama</label>
+                <textarea id="statusText" rows="2" required></textarea>
+            </div>
+            <div>
+                <label for="statusOrder">Sıra</label>
+                <input type="number" id="statusOrder" value="1" required>
+            </div>
+            <div>
+                <label for="statusState">Vəziyyət</label>
+                <select id="statusState" required>
+                    <option value="active">Aktiv (Yaşıl)</option>
+                    <option value="delayed">Gecikmə (Narıncı)</option>
+                    <option value="paused">Dayandırılıb (Qırmızı)</option>
+                </select>
+            </div>
+            <div class="form-buttons">
+                <button type="button" class="btn btn-red" id="cancelStatusUpdate" style="display: none;">Ləğv et</button>
+                <button type="submit" class="btn btn-green" id="saveStatusBtn">Yeni Status Əlavə Et</button>
+            </div>
+        </form>
       </div>
 
       <div class="section">
@@ -125,17 +161,6 @@
             </table>
         </div>
     </div>
-
-    <div id="historyModal" class="modal">
-      <div class="modal-content">
-        <span class="close-btn" onclick="closeHistoryModal()">&times;</span>
-        <h2 id="history-modal-title">İstifadəçi Tarixçəsi</h2>
-        <table id="historyTable">
-          <thead><tr><th>Əməliyyat Növü</th><th>Məbləğ (AZN)</th><th>Tarix</th></tr></thead>
-          <tbody id="history-table-body"></tbody>
-        </table>
-      </div>
-    </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
@@ -162,15 +187,16 @@
         }
     });
     document.getElementById('adminLoginBtn').addEventListener('click', () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()));
-      document.getElementById('sendAnnouncementBtn').addEventListener('click', sendAnnouncement);
-    
     function loadAllData() {
         loadDashboardStats();
+        loadSystemStatuses();
         loadAnnouncements();
         loadSupportChats();
         loadWithdrawals();
         loadUsersAndBalances();
     }
+    
+    document.getElementById('sendAnnouncementBtn').addEventListener('click', sendAnnouncement);
     
     function sendAnnouncement() {
         const textArea = document.getElementById('announcement-textarea');
@@ -296,6 +322,29 @@
         }
         window.onclick = function(event) { if (event.target == modal) { closeHistoryModal(); } }
     }
-</script>
-</body>
-</html>
+
+    function loadSystemStatuses() {
+        const tableBody = document.getElementById('statusManagementTable').querySelector('tbody');
+        const statusRef = db.ref('system_status');
+        statusRef.on('value', (snapshot) => {
+            tableBody.innerHTML = '';
+            if (!snapshot.exists()) {
+                tableBody.innerHTML = '<tr class="no-data-row"><td colspan="5" class="no-data">Status yoxdur.</td></tr>';
+                return;
+            }
+            let statuses = [];
+            snapshot.forEach(child => {
+                statuses.push({ key: child.key, ...child.val() });
+            });
+            statuses.sort((a, b) => a.order - b.order);
+
+            statuses.forEach(data => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td data-label="Sıra">${data.order}</td>
+                    <td data-label="Başlıq">${data.label}</td>
+                    <td data-label="Açıqlama">${data.status_text}</td>
+                    <td data-label="Vəziyyət"><span class="status-indicator-admin indicator-${data.state}"></span> ${data.state}</td>
+                    <td data-label="Əməliyyatlar">
+                        <div class="actions-cell">
+                            <b
