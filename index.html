@@ -187,7 +187,7 @@
         }
     });
     document.getElementById('adminLoginBtn').addEventListener('click', () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()));
-    function loadAllData() {
+      function loadAllData() {
         loadDashboardStats();
         loadSystemStatuses();
         loadAnnouncements();
@@ -251,7 +251,7 @@
         if (userList.length === 0) { userTableBody.innerHTML = '<tr class="no-data-row"><td colspan="4" class="no-data">İstifadəçi tapılmadı.</td></tr>'; return; }
         userList.forEach(userData => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td data-label="Ad">${userData.displayName || 'Adsız'}</td><td data-label="Email">${userData.email}</td><td data-label="Balans (AZN)"><b>${parseFloat(userData.balance).toFixed(2)} AZN</b></td><td data-label="Əməliyyatlar"><div class="actions-cell"><input type="text" id="balance-input-${userData.uid}" placeholder="+50, -20, 200" class="balance-input"><button class="btn btn-blue" onclick="applyBalanceChange('${userData.uid}')">Tətbiq et</button><button class="btn btn-purple" onclick="showUserHistory('${userData.uid}', '${userData.displayName || userData.email}')">Tarixçə</button><button class="btn btn-dark-red" onclick="deleteUser('${userData.uid}', '${userData.email}')">Sil</button></div></td>`;
+            tr.innerHTML = `<td data-label="Ad">${userData.displayName || 'Adsız'}</td><td data-label="Email">${userData.email}</td><td data-label="Balans (AZN)"><b>${parseFloat(userData.balance).toFixed(2)} AZN</b></td><td data-label="Əməliyyatlar"><div class="actions-cell"><input type="text" id="balance-input-${userData.uid}" placeholder="+50, -20, 200" class="balance-input"><button class="btn btn-blue" onclick="applyBalanceChange('${userData.uid}')">Tətbiq et</button><button class="btn btn-dark-red" onclick="deleteUser('${userData.uid}', '${userData.email}')">Sil</button></div></td>`;
             userTableBody.appendChild(tr);
         });
     }
@@ -259,70 +259,6 @@
     function loadUsersAndBalances() { const usersRef = db.ref('users'); const balancesRef = db.ref('balances'); usersRef.on('value', (userSnapshot) => { balancesRef.on('value', (balanceSnapshot) => { masterUserList = []; if (!userSnapshot.exists()) { displayUsers([]); return; } const allBalances = balanceSnapshot.val() || {}; userSnapshot.forEach(childSnapshot => { const uid = childSnapshot.key; const userData = childSnapshot.val(); const userBalance = allBalances[uid] && allBalances[uid].amount ? allBalances[uid].amount : 0; masterUserList.push({ uid: uid, displayName: userData.displayName, email: userData.email, balance: userBalance }); }); document.getElementById('userSearchInput').dispatchEvent(new Event('input')); }); }); }
     document.getElementById('userSearchInput').addEventListener('input', (e) => { const searchTerm = e.target.value.toLowerCase(); if (!searchTerm) { displayUsers(masterUserList); return; } const filteredList = masterUserList.filter(user => { const name = user.displayName ? user.displayName.toLowerCase() : ''; const email = user.email ? user.email.toLowerCase() : ''; return name.includes(searchTerm) || email.includes(searchTerm); }); displayUsers(filteredList); });
     
-    function closeHistoryModal() { document.getElementById('historyModal').style.display = 'none'; }
-    async function showUserHistory(uid, displayName) {
-        const modal = document.getElementById('historyModal');
-        const title = document.getElementById('history-modal-title');
-        const tableBody = document.getElementById('history-table-body');
-        title.textContent = `'${displayName}' adlı istifadəçinin tarixçəsi`;
-        tableBody.innerHTML = '<tr><td colspan="3" class="no-data">Yüklənir...</td></tr>';
-        modal.style.display = 'flex';
-        try {
-            const [depositsSnapshot, withdrawalsSnapshot] = await Promise.all([
-                db.ref('deposits').orderByChild('uid').equalTo(uid).once('value'),
-                db.ref('withdrawals').orderByChild('uid').equalTo(uid).once('value')
-            ]);
-            let historyItems = [];
-            if (depositsSnapshot.exists()) {
-                depositsSnapshot.forEach(child => {
-                    const deposit = child.val();
-                    historyItems.push({ type: 'deposit', amount: deposit.amount, status: 'Təsdiqləndi', date: deposit.createdAt });
-                });
-            }
-            if (withdrawalsSnapshot.exists()) {
-                withdrawalsSnapshot.forEach(child => {
-                    const withdrawal = child.val();
-                    historyItems.push({ type: 'withdrawal', amount: withdrawal.requestData.amount, status: withdrawal.status, date: withdrawal.createdAt });
-                });
-            }
-            if (historyItems.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="3" class="no-data">Bu istifadəçi üçün heç bir maliyyə əməliyyatı tapılmadı.</td></tr>';
-                return;
-            }
-            historyItems.sort((a, b) => b.date - a.date);
-            tableBody.innerHTML = '';
-            historyItems.forEach(item => {
-                const tr = document.createElement('tr');
-                let typeText, amountHTML;
-                if (item.type === 'deposit') {
-                    typeText = 'Balans Artımı (Admin)';
-                    amountHTML = `<b style="color: var(--green);">+${parseFloat(item.amount).toFixed(2)} AZN</b>`;
-                } else {
-                    switch (item.status) {
-                        case 'approved':
-                            typeText = 'Pul Çıxarışı (Təsdiqləndi)';
-                            amountHTML = `<b style="color: var(--red);">- ${parseFloat(item.amount).toFixed(2)} AZN</b>`;
-                            break;
-                        case 'rejected':
-                            typeText = 'Pul Çıxarışı (Rədd Edildi)';
-                            amountHTML = `<b style="color: var(--text-muted); text-decoration: line-through;">- ${parseFloat(item.amount).toFixed(2)} AZN</b>`;
-                            break;
-                        default:
-                            typeText = 'Pul Çıxarışı (Gözləmədə)';
-                            amountHTML = `<b style="color: var(--yellow);">- ${parseFloat(item.amount).toFixed(2)} AZN</b>`;
-                            break;
-                    }
-                }
-                tr.innerHTML = `<td data-label="Əməliyyat Növü">${typeText}</td><td data-label="Məbləğ (AZN)">${amountHTML}</td><td data-label="Tarix">${new Date(item.date).toLocaleString()}</td>`;
-                tableBody.appendChild(tr);
-            });
-        } catch (error) {
-            console.error("Tarixçə yüklənərkən xəta baş verdi:", error);
-            tableBody.innerHTML = '<tr><td colspan="3" class="no-data">Məlumatları yükləmək mümkün olmadı.</td></tr>';
-        }
-        window.onclick = function(event) { if (event.target == modal) { closeHistoryModal(); } }
-    }
-
     function loadSystemStatuses() {
         const tableBody = document.getElementById('statusManagementTable').querySelector('tbody');
         const statusRef = db.ref('system_status');
@@ -347,4 +283,68 @@
                     <td data-label="Vəziyyət"><span class="status-indicator-admin indicator-${data.state}"></span> ${data.state}</td>
                     <td data-label="Əməliyyatlar">
                         <div class="actions-cell">
-                            <b
+                            <button class="btn btn-blue" onclick='editStatus("${data.key}", ${JSON.stringify(JSON.stringify(data))})'>Redaktə et</button>
+                            <button class="btn btn-red" onclick="deleteStatus('${data.key}')">Sil</button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        });
+    }
+
+    function resetStatusForm() {
+        const form = document.getElementById('statusForm');
+        form.reset();
+        document.getElementById('statusKey').value = '';
+        document.getElementById('saveStatusBtn').textContent = 'Yeni Status Əlavə Et';
+        document.getElementById('cancelStatusUpdate').style.display = 'none';
+    }
+
+    function editStatus(key, jsonData) {
+        const data = JSON.parse(jsonData);
+        document.getElementById('statusKey').value = key;
+        document.getElementById('statusLabel').value = data.label;
+        document.getElementById('statusText').value = data.status_text;
+        document.getElementById('statusOrder').value = data.order;
+        document.getElementById('statusState').value = data.state;
+        document.getElementById('saveStatusBtn').textContent = 'Yenilə';
+        document.getElementById('cancelStatusUpdate').style.display = 'inline-block';
+        window.scrollTo(0, document.getElementById('statusForm').offsetTop);
+    }
+
+    function deleteStatus(key) {
+        if (confirm("Bu statusu silmək istədiyinizə əminsiniz?")) {
+            db.ref('system_status/' + key).remove()
+                .then(() => alert("Status uğurla silindi."))
+                .catch(error => alert("Xəta: " + error.message));
+        }
+    }
+
+    document.getElementById('statusForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const key = document.getElementById('statusKey').value;
+        const statusData = {
+            label: document.getElementById('statusLabel').value,
+            status_text: document.getElementById('statusText').value,
+            order: parseInt(document.getElementById('statusOrder').value),
+            state: document.getElementById('statusState').value
+        };
+
+        let promise;
+        if (key) {
+            promise = db.ref('system_status/' + key).update(statusData);
+        } else {
+            promise = db.ref('system_status').push(statusData);
+        }
+
+        promise.then(() => {
+            alert(key ? "Status uğurla yeniləndi." : "Yeni status uğurla əlavə edildi.");
+            resetStatusForm();
+        }).catch(error => alert("Xəta: " + error.message));
+    });
+
+    document.getElementById('cancelStatusUpdate').addEventListener('click', resetStatusForm);
+</script>
+</body>
+</html>
