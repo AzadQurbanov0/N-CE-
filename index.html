@@ -110,7 +110,21 @@
             <button id="stopMoneyRainBtn" class="btn btn-red">Dayandır</button>
         </div>
       </div>
-            <div class="section">
+      <div class="section">
+        <h2 style="margin:0;">Birja (Coin) İdarəetməsi</h2>
+        <div id="birjaControls" style="display: flex; gap: 20px; margin-top: 15px; align-items: flex-end; flex-wrap: wrap;">
+            <div style="flex-grow: 1;">
+                <label for="coinNameInput" style="display: block; margin-bottom: 5px; color: var(--text-muted);">Coin Adı</label>
+                <input type="text" id="coinNameInput" placeholder="Məs: QurCoin" style="width: 100%; box-sizing: border-box; background-color: #1e293b; border: 1px solid #334155; border-radius: 6px; color: var(--text-main); font-size: 1rem; padding: 8px;">
+            </div>
+            <div style="flex-grow: 1;">
+                <label for="coinPriceInput" style="display: block; margin-bottom: 5px; color: var(--text-muted);">Hazırkı Qiymət (AZN)</label>
+                <input type="number" id="coinPriceInput" placeholder="Məs: 1.50" step="0.01" style="width: 100%; box-sizing: border-box; background-color: #1e293b; border: 1px solid #334155; border-radius: 6px; color: var(--text-main); font-size: 1rem; padding: 8px;">
+            </div>
+            <button id="saveBirjaSettingsBtn" class="btn btn-purple" style="padding: 10px 20px;">Yadda Saxla</button>
+        </div>
+      </div>
+                  <div class="section">
         <h2 style="margin:0;">Sistem Vəziyyətini İdarə Et</h2>
         <table id="statusManagementTable">
             <thead><tr><th>Sıra</th><th>Başlıq</th><th>Açıqlama</th><th>Vəziyyət</th><th>Əməliyyatlar</th></tr></thead>
@@ -150,7 +164,7 @@
         <button id="sendAnnouncementBtn" class="btn btn-purple">Elanı Göndər</button>
         <div id="past-announcements-list"></div>
       </div>
-      <div class="section">
+            <div class="section">
         <h2 style="margin:0;">Dəstək Mərkəzi</h2>
         <div id="support-center">
             <div id="chat-list-container"></div>
@@ -173,12 +187,12 @@
             <tbody><tr class="no-data-row"><td colspan="7" class="no-data">Heç bir sorğu yoxdur.</td></tr></tbody>
         </table>
       </div>
-      <div class="section">
+            <div class="section">
           <h2 style="margin:0;">İstifadəçilər & Balans</h2>
           <input type="search" id="userSearchInput" placeholder="Ada və ya emailə görə axtar...">
           <table id="userTable">
-              <thead><tr><th>Ad</th><th>Email</th><th>Balans (AZN)</th><th>Əməliyyatlar</th></tr></thead>
-                <tbody><tr class="no-data-row"><td colspan="4" class="no-data">İstifadəçi yoxdur.</td></tr></tbody>
+              <thead><tr><th>Ad</th><th>Email</th><th>Balans (AZN)</th><th>Coin Balansı</th><th>Əməliyyatlar</th></tr></thead>
+                <tbody><tr class="no-data-row"><td colspan="5" class="no-data">İstifadəçi yoxdur.</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -200,6 +214,7 @@
     };
     function loadAllData() {
         loadDashboardStats();
+        loadBirjaSettings();
         loadSystemStatuses();
         loadAnnouncements();
         loadSupportChats();
@@ -207,6 +222,29 @@
         loadUsersAndBalances();
         initializeMoneyRainPanel();
     }
+      // ================== BİRJA İDARƏETMƏSİ JAVASCRIPT (YENİ) ==================
+    function loadBirjaSettings() {
+        const nameInput = document.getElementById('coinNameInput');
+        const priceInput = document.getElementById('coinPriceInput');
+        db.ref('birja_settings').on('value', (snapshot) => {
+            if (snapshot.exists()) {
+                const settings = snapshot.val();
+                nameInput.value = settings.name || '';
+                priceInput.value = settings.price || 0;
+            }
+        });
+    }
+    function saveBirjaSettings() {
+        const name = document.getElementById('coinNameInput').value.trim();
+        const price = parseFloat(document.getElementById('coinPriceInput').value);
+        if (!name) { alert("Coin adı boş ola bilməz."); return; }
+        if (isNaN(price) || price < 0) { alert("Zəhmət olmasa, düzgün qiymət daxil edin."); return; }
+        db.ref('birja_settings').set({ name: name, price: price })
+            .then(() => { alert("Birja məlumatları uğurla yadda saxlanıldı!"); })
+            .catch(error => { alert("Xəta baş verdi: " + error.message); });
+    }
+    document.getElementById('saveBirjaSettingsBtn').addEventListener('click', saveBirjaSettings);
+    // ================== BİRJA İDARƏETMƏSİ SON ==================
     document.getElementById('sendAnnouncementBtn').addEventListener('click', sendAnnouncement);
     function sendAnnouncement() {
         const textArea = document.getElementById('announcement-textarea');
@@ -244,208 +282,72 @@
     function loadSupportChats() { const chatListContainer = document.getElementById('chat-list-container'); const chatRef = db.ref('support_chats').orderByChild('last_updated'); chatRef.on('value', snapshot => { chatListContainer.innerHTML = ''; if (!snapshot.exists()) { chatListContainer.innerHTML = '<p class="no-data">Heç bir söhbət yoxdur.</p>'; return; } let chats = []; snapshot.forEach(child => { chats.push({ uid: child.key, ...child.val() }); }); chats.reverse().forEach(chatData => { const item = document.createElement('div'); item.className = 'chat-list-item'; if (chatData.uid === currentChatUid) { item.classList.add('active'); } item.innerHTML = `<span>${chatData.user_email || 'Naməlum'}</span> ${chatData.new_message_for_admin ? '<div class="new-message-indicator"></div>' : ''}`; item.onclick = () => openChat(chatData.uid, chatData.user_email); chatListContainer.appendChild(item); }); }); document.getElementById('send-reply-btn').onclick = sendAdminReply; document.getElementById('reply-input').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAdminReply(); } }; }
     function openChat(uid, userEmail) { currentChatUid = uid; document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active')); const activeItem = [...document.querySelectorAll('.chat-list-item')].find(el => el.textContent.includes(userEmail)); if (activeItem) activeItem.classList.add('active'); document.getElementById('chat-placeholder').style.display = 'none'; document.getElementById('chat-view').style.display = 'flex'; document.getElementById('chat-view-header').textContent = `Söhbət: ${userEmail}`; const messagesContainer = document.getElementById('messages-container'); messagesContainer.innerHTML = ''; if (messagesListener) { messagesListener.off(); } db.ref(`support_chats/${uid}`).update({ new_message_for_admin: false }); const messagesRef = db.ref(`support_chats/${uid}/messages`).limitToLast(100); messagesListener = messagesRef.on('child_added', msgSnapshot => { const msg = msgSnapshot.val(); const msgDiv = document.createElement('div'); msgDiv.className = `message ${msg.sender === 'admin' ? 'admin' : 'user'}`; msgDiv.textContent = msg.text; messagesContainer.appendChild(msgDiv); messagesContainer.scrollTop = messagesContainer.scrollHeight; }); }
     function sendAdminReply() { const input = document.getElementById('reply-input'); const text = input.value.trim(); if (text === '' || !currentChatUid) return; const messageData = { text: text, sender: 'admin', timestamp: firebase.database.ServerValue.TIMESTAMP }; db.ref(`support_chats/${currentChatUid}/messages`).push(messageData); db.ref(`support_chats/${currentChatUid}`).update({ last_message: text, last_updated: firebase.database.ServerValue.TIMESTAMP, new_message_for_admin: false, new_message_for_user_count: firebase.database.ServerValue.increment(1) }); input.value = ''; }
-    function archiveRequest(key) { if (confirm("Bu sorğunu arxivləşdirmək istəyirsiniz?")) { db.ref('withdrawals/' + key).update({ isArchived: true }); } }
+      function archiveRequest(key) { if (confirm("Bu sorğunu arxivləşdirmək istəyirsiniz?")) { db.ref('withdrawals/' + key).update({ isArchived: true }); } }
     function deleteUser(uid, email) { if(confirm(`'${email}' istifadəçisini sil? Bu əməliyyat geri qaytarılmazdır.`)) { db.ref('users/' + uid).remove(); db.ref('balances/' + uid).remove(); }}
     async function applyBalanceChange(uid) { const inputElement = document.getElementById(`balance-input-${uid}`); const inputValue = inputElement.value.trim().replace(',', '.'); if (inputValue === '') return alert("Zəhmət olmasa, bir dəyər daxil edin."); const changeValue = parseFloat(inputValue); if (isNaN(changeValue)) return alert("Zəhmət olmasa, düzgün rəqəm daxil edin."); try { const balanceSnapshot = await db.ref('balances/' + uid).once('value'); const currentBalance = balanceSnapshot.exists() && balanceSnapshot.val().amount ? parseFloat(balanceSnapshot.val().amount) : 0; let amountAdded = 0; let finalBalance = 0; if (inputValue.startsWith('+')) { amountAdded = changeValue; finalBalance = currentBalance + amountAdded; } else if (inputValue.startsWith('-')) { finalBalance = currentBalance + changeValue; if (finalBalance < 0) finalBalance = 0; if (confirm(`İstifadəçinin balansını ${finalBalance.toFixed(2)} AZN olaraq təyin etmək istəyirsiniz? (Tarixçəyə yazılmayacaq)`)) { await db.ref('balances/' + uid).set({ amount: finalBalance }); alert("Balans uğurla yeniləndi!"); inputElement.value = ''; } return; } else { finalBalance = changeValue; amountAdded = finalBalance - currentBalance; } if (amountAdded > 0) { if (confirm(`İstifadəçinin balansına ${amountAdded.toFixed(2)} AZN əlavə edilsin?\nYeni balans: ${finalBalance.toFixed(2)} AZN`)) { await addBalanceAndCreateHistory(uid, amountAdded); alert("Balans uğurla artırıldı və tarixçəyə qeyd edildi!"); inputElement.value = ''; } } else { if (confirm(`İstifadəçinin balansını ${finalBalance.toFixed(2)} AZN olaraq təyin etmək istəyirsiniz? (Tarixçəyə yazılmayacaq)`)) { await db.ref('balances/' + uid).set({ amount: finalBalance }); alert("Balans uğurla yeniləndi!"); inputElement.value = ''; } } } catch (error) { alert("Balans yenilənərkən xəta baş verdi: " + error.message); } }
     function loadWithdrawals() { const withdrawalsTableBody = document.getElementById('withdrawalsTable').querySelector('tbody'); db.ref('withdrawals').on('value', (snapshot) => { if (!snapshot.exists()) { withdrawalsTableBody.innerHTML = '<tr class="no-data-row"><td colspan="7" class="no-data">Heç bir sorğu yoxdur.</td></tr>'; return; } withdrawalsTableBody.innerHTML = ''; let requests = []; snapshot.forEach(child => { requests.push({ key: child.key, ...child.val() }); }); const visibleRequests = requests.filter(req => !req.isArchived); visibleRequests.sort((a, b) => { const a_is_pending = a.status === 'pending'; const b_is_pending = b.status === 'pending'; if (a_is_pending && !b_is_pending) return -1; if (!a_is_pending && b_is_pending) return 1; return b.createdAt - a.createdAt; }); if (visibleRequests.length === 0) { withdrawalsTableBody.innerHTML = '<tr class="no-data-row"><td colspan="7" class="no-data">Göstəriləcək aktiv sorğu yoxdur.</td></tr>'; return; } visibleRequests.forEach(data => { const reqData = data.requestData; const tr = document.createElement('tr'); let statusText, statusClass; switch (data.status) { case 'approved': statusText = 'Onaylandı'; statusClass = 'status-approved'; break; case 'rejected': statusText = 'Rədd edildi'; statusClass = 'status-rejected'; break; default: statusText = 'Gözləmədə'; statusClass = 'status-pending'; } let actionButtons; if (data.status === 'pending') { actionButtons = `<button class="btn btn-green" onclick="updateRequestStatus('${data.key}', 'approved')">Onayla</button><button class="btn btn-red" onclick="updateRequestStatus('${data.key}', 'rejected')">Rədd et</button>`; } else { actionButtons = `<button class="btn btn-dark-red" onclick="archiveRequest('${data.key}')">Arxivlə</button>`; } tr.innerHTML = `<td data-label="Email">${data.userEmail}</td><td data-label="Ad/Soyad">${reqData.name} ${reqData.surname}</td><td data-label="Kart">${reqData.cardNumber}</td><td data-label="Məbləğ"><b>${parseFloat(reqData.amount).toFixed(2)} AZN</b></td><td data-label="Tarix">${new Date(data.createdAt).toLocaleString()}</td><td data-label="Status"><span class="status ${statusClass}">${statusText}</span></td><td data-label="Əməliyyat"><div class="actions-cell">${actionButtons}</div></td>`; withdrawalsTableBody.appendChild(tr); }); }); }
     function displayUsers(userList) {
         const userTableBody = document.getElementById('userTable').querySelector('tbody');
         userTableBody.innerHTML = '';
-        if (userList.length === 0) { userTableBody.innerHTML = '<tr class="no-data-row"><td colspan="4" class="no-data">İstifadəçi tapılmadı.</td></tr>'; return; }
+        if (userList.length === 0) { userTableBody.innerHTML = '<tr class="no-data-row"><td colspan="5" class="no-data">İstifadəçi tapılmadı.</td></tr>'; return; }
         userList.forEach(userData => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td data-label="Ad">${userData.displayName || 'Adsız'}</td><td data-label="Email">${userData.email}</td><td data-label="Balans (AZN)"><b>${parseFloat(userData.balance).toFixed(2)} AZN</b></td><td data-label="Əməliyyatlar"><div class="actions-cell"><input type="text" id="balance-input-${userData.uid}" placeholder="+50, -20, 200" class="balance-input"><button class="btn btn-blue" onclick="applyBalanceChange('${userData.uid}')">Tətbiq et</button><button class="btn btn-dark-red" onclick="deleteUser('${userData.uid}', '${userData.email}')">Sil</button></div></td>`;
+            tr.innerHTML = ` <td data-label="Ad">${userData.displayName || 'Adsız'}</td> <td data-label="Email">${userData.email}</td> <td data-label="Balans (AZN)"><b>${parseFloat(userData.balance).toFixed(2)} AZN</b></td> <td data-label="Coin Balansı"><b>${parseFloat(userData.coinBalance).toFixed(2)} Coin</b></td> <td data-label="Əməliyyatlar"> <div class="actions-cell"> <input type="text" id="balance-input-${userData.uid}" placeholder="+50, -20, 200" class="balance-input"> <button class="btn btn-blue" onclick="applyBalanceChange('${userData.uid}')">Tətbiq et</button> <button class="btn btn-dark-red" onclick="deleteUser('${userData.uid}', '${userData.email}')">Sil</button> </div> </td>`;
             userTableBody.appendChild(tr);
         });
     }
-    function loadUsersAndBalances() { const usersRef = db.ref('users'); const balancesRef = db.ref('balances'); usersRef.on('value', (userSnapshot) => { balancesRef.on('value', (balanceSnapshot) => { masterUserList = []; if (!userSnapshot.exists()) { displayUsers([]); return; } const allBalances = balanceSnapshot.val() || {}; userSnapshot.forEach(childSnapshot => { const uid = childSnapshot.key; const userData = childSnapshot.val(); const userBalance = allBalances[uid] && allBalances[uid].amount ? allBalances[uid].amount : 0; masterUserList.push({ uid: uid, displayName: userData.displayName, email: userData.email, balance: userBalance }); }); document.getElementById('userSearchInput').dispatchEvent(new Event('input')); }); }); }
+    function loadUsersAndBalances() {
+        const usersRef = db.ref('users');
+        const balancesRef = db.ref('balances');
+        const userCoinsRef = db.ref('user_coins');
+        Promise.all([ usersRef.once('value'), balancesRef.once('value'), userCoinsRef.once('value') ]).then(([userSnapshot, balanceSnapshot, userCoinsSnapshot]) => {
+            masterUserList = [];
+            if (!userSnapshot.exists()) { displayUsers([]); return; }
+            const allBalances = balanceSnapshot.val() || {};
+            const allUserCoins = userCoinsSnapshot.val() || {};
+            userSnapshot.forEach(childSnapshot => {
+                const uid = childSnapshot.key;
+                const userData = childSnapshot.val();
+                const userBalance = allBalances[uid] && allBalances[uid].amount ? allBalances[uid].amount : 0;
+                const userCoinBalance = allUserCoins[uid] && allUserCoins[uid].amount ? allUserCoins[uid].amount : 0;
+                masterUserList.push({ uid: uid, displayName: userData.displayName, email: userData.email, balance: userBalance, coinBalance: userCoinBalance });
+            });
+            document.getElementById('userSearchInput').dispatchEvent(new Event('input'));
+        });
+    }
     document.getElementById('userSearchInput').addEventListener('input', (e) => { const searchTerm = e.target.value.toLowerCase(); if (!searchTerm) { displayUsers(masterUserList); return; } const filteredList = masterUserList.filter(user => { const name = user.displayName ? user.displayName.toLowerCase() : ''; const email = user.email ? user.email.toLowerCase() : ''; return name.includes(searchTerm) || email.includes(searchTerm); }); displayUsers(filteredList); });
-      function loadSystemStatuses() {
+    function loadSystemStatuses() {
         const tableBody = document.getElementById('statusManagementTable').querySelector('tbody');
         const statusRef = db.ref('system_status');
         statusRef.on('value', (snapshot) => {
             tableBody.innerHTML = '';
-            if (!snapshot.exists()) {
-                tableBody.innerHTML = '<tr class="no-data-row"><td colspan="5" class="no-data">Status yoxdur.</td></tr>';
-                return;
-            }
+            if (!snapshot.exists()) { tableBody.innerHTML = '<tr class="no-data-row"><td colspan="5" class="no-data">Status yoxdur.</td></tr>'; return; }
             let statuses = [];
             snapshot.forEach(child => { statuses.push({ key: child.key, ...child.val() }); });
             statuses.sort((a, b) => a.order - b.order);
             statuses.forEach(data => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td data-label="Sıra">${data.order}</td>
-                    <td data-label="Başlıq">${data.label}</td>
-                    <td data-label="Açıqlama">${data.status_text}</td>
-                    <td data-label="Vəziyyət"><span class="status-indicator-admin indicator-${data.state}"></span> ${data.state}</td>
-                    <td data-label="Əməliyyatlar">
-                        <div class="actions-cell">
-                            <button class="btn btn-blue" onclick='editStatus("${data.key}", ${JSON.stringify(JSON.stringify(data))})'>Redaktə et</button>
-                            <button class="btn btn-red" onclick="deleteStatus('${data.key}')">Sil</button>
-                        </div>
-                    </td>
-                `;
+                tr.innerHTML = ` <td data-label="Sıra">${data.order}</td> <td data-label="Başlıq">${data.label}</td> <td data-label="Açıqlama">${data.status_text}</td> <td data-label="Vəziyyət"><span class="status-indicator-admin indicator-${data.state}"></span> ${data.state}</td> <td data-label="Əməliyyatlar"> <div class="actions-cell"> <button class="btn btn-blue" onclick='editStatus("${data.key}", ${JSON.stringify(JSON.stringify(data))})'>Redaktə et</button> <button class="btn btn-red" onclick="deleteStatus('${data.key}')">Sil</button> </div> </td> `;
                 tableBody.appendChild(tr);
             });
         });
     }
-    function resetStatusForm() {
-        const form = document.getElementById('statusForm');
-        form.reset();
-        document.getElementById('statusKey').value = '';
-        document.getElementById('saveStatusBtn').textContent = 'Yeni Status Əlavə Et';
-        document.getElementById('cancelStatusUpdate').style.display = 'none';
-    }
-    function editStatus(key, jsonData) {
-        const data = JSON.parse(jsonData);
-        document.getElementById('statusKey').value = key;
-        document.getElementById('statusLabel').value = data.label;
-        document.getElementById('statusText').value = data.status_text;
-        document.getElementById('statusOrder').value = data.order;
-        document.getElementById('statusState').value = data.state;
-        document.getElementById('saveStatusBtn').textContent = 'Yenilə';
-        document.getElementById('cancelStatusUpdate').style.display = 'inline-block';
-        window.scrollTo(0, document.getElementById('statusForm').offsetTop);
-    }
-    function deleteStatus(key) {
-        if (confirm("Bu statusu silmək istədiyinizə əminsiniz?")) {
-            db.ref('system_status/' + key).remove()
-                .then(() => alert("Status uğurla silindi."))
-                .catch(error => alert("Xəta: " + error.message));
-        }
-    }
+    function resetStatusForm() { const form = document.getElementById('statusForm'); form.reset(); document.getElementById('statusKey').value = ''; document.getElementById('saveStatusBtn').textContent = 'Yeni Status Əlavə Et'; document.getElementById('cancelStatusUpdate').style.display = 'none'; }
+    function editStatus(key, jsonData) { const data = JSON.parse(jsonData); document.getElementById('statusKey').value = key; document.getElementById('statusLabel').value = data.label; document.getElementById('statusText').value = data.status_text; document.getElementById('statusOrder').value = data.order; document.getElementById('statusState').value = data.state; document.getElementById('saveStatusBtn').textContent = 'Yenilə'; document.getElementById('cancelStatusUpdate').style.display = 'inline-block'; window.scrollTo(0, document.getElementById('statusForm').offsetTop); }
+    function deleteStatus(key) { if (confirm("Bu statusu silmək istədiyinizə əminsiniz?")) { db.ref('system_status/' + key).remove().then(() => alert("Status uğurla silindi.")).catch(error => alert("Xəta: " + error.message)); } }
     document.getElementById('statusForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const key = document.getElementById('statusKey').value;
-        const statusData = {
-            label: document.getElementById('statusLabel').value,
-            status_text: document.getElementById('statusText').value,
-            order: parseInt(document.getElementById('statusOrder').value),
-            state: document.getElementById('statusState').value
-        };
+        const statusData = { label: document.getElementById('statusLabel').value, status_text: document.getElementById('statusText').value, order: parseInt(document.getElementById('statusOrder').value), state: document.getElementById('statusState').value };
         let promise;
-        if (key) {
-            promise = db.ref('system_status/' + key).update(statusData);
-        } else {
-            promise = db.ref('system_status').push(statusData);
-        }
-        promise.then(() => {
-            alert(key ? "Status uğurla yeniləndi." : "Yeni status uğurla əlavə edildi.");
-            resetStatusForm();
-        }).catch(error => alert("Xəta: " + error.message));
+        if (key) { promise = db.ref('system_status/' + key).update(statusData); } else { promise = db.ref('system_status').push(statusData); }
+        promise.then(() => { alert(key ? "Status uğurla yeniləndi." : "Yeni status uğurla əlavə edildi."); resetStatusForm(); }).catch(error => alert("Xəta: " + error.message));
     });
     document.getElementById('cancelStatusUpdate').addEventListener('click', resetStatusForm);
-
-    /* === PARA YAĞIŞI İDARƏETMƏSİ === */
-    function initializeMoneyRainPanel() {
-        const moneyRainRef = db.ref('moneyRainEvent');
-        const statusEl = document.getElementById('moneyRainStatus');
-        const startBtn = document.getElementById('startMoneyRainBtn');
-        const stopBtn = document.getElementById('stopMoneyRainBtn');
-        moneyRainRef.on('value', (snapshot) => {
-            let status = 'idle';
-            if (snapshot.exists() && snapshot.val().status) {
-                status = snapshot.val().status;
-            }
-            statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-            statusEl.className = 'status-display ' + status;
-            if (status === 'idle' || status === 'finished') {
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-            } else {
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
-            }
-        });
-        startBtn.addEventListener('click', startMoneyRain);
-        stopBtn.addEventListener('click', stopMoneyRain);
-    }
-
-    function startMoneyRain() {
-        const amountInput = document.getElementById('moneyRainAmount');
-        const durationInput = document.getElementById('moneyRainDuration');
-        const amount = parseFloat(amountInput.value);
-        const duration = parseInt(durationInput.value, 10);
-        if (isNaN(amount) || amount <= 0) {
-            alert("Zəhmət olmasa, düzgün müsbət məbləğ daxil edin.");
-            return;
-        }
-        if (isNaN(duration) || duration < 10) {
-            alert("Oyun müddəti ən az 10 saniyə olmalıdır.");
-            return;
-        }
-        if (!confirm(`${amount.toFixed(2)} AZN məbləğində Para Yağışını başlatmaq istədiyinizə əminsiniz?`)) {
-            return;
-        }
-        const eventData = {
-            status: 'pending',
-            totalAmount: amount,
-            startTime: Date.now() + 30000,
-            duration: duration * 1000,
-            participants: null,
-            leaderboard: null
-        };
-        setTimeout(() => { db.ref('moneyRainEvent/status').set('active'); }, 30000);
-        setTimeout(() => {
-            db.ref('moneyRainEvent').once('value', snapshot => {
-                const event = snapshot.val();
-                if(event && event.status === 'active') {
-                    calculateResultsFromAdmin(event);
-                }
-            });
-        }, 30000 + (duration * 1000) + 1000); // ehtiyat üçün 1 saniyə əlavə
-        db.ref('moneyRainEvent').set(eventData)
-            .then(() => alert("Para Yağışı başladılır! İstifadəçilər 30 saniyə sonra oyuna başlaya biləcəklər."))
-            .catch(error => alert("Xəta: " + error.message));
-    }
-    function stopMoneyRain() {
-        if (!confirm("Para Yağışını dayandırmaq istədiyinizə əminsiniz?")) {
-            return;
-        }
-        db.ref('moneyRainEvent').update({ status: 'idle' })
-            .then(() => alert("Para Yağışı uğurla dayandırıldı."))
-            .catch(error => alert("Xəta: " + error.message));
-    }
-    // DƏYİŞİKLİK: Nəticə hesablanarkən tarixçəyə qeyd əlavə edilir
-    function calculateResultsFromAdmin(eventData) {
-        const participants = eventData.participants || {};
-        const totalAmount = eventData.totalAmount;
-        let totalScore = 0;
-        Object.values(participants).forEach(p => { totalScore += p.score; });
-        if (totalScore === 0) {
-            db.ref('moneyRainEvent/status').set('finished');
-            setTimeout(() => { db.ref('moneyRainEvent').update({ status: 'idle' }); }, 15000);
-            return;
-        }
-        const leaderboard = {};
-        const allUpdates = {}; // Balans və tarixçə üçün ümumi yeniləmə obyekti
-        for (const uid in participants) {
-            const participant = participants[uid];
-            const reward = (participant.score / totalScore) * totalAmount;
-            const finalReward = parseFloat(reward.toFixed(2));
-            if (finalReward > 0) {
-                leaderboard[uid] = { displayName: participant.displayName, score: participant.score, reward: finalReward };
-                // Balansı yenilə
-                allUpdates[`/balances/${uid}/amount`] = firebase.database.ServerValue.increment(finalReward);
-                // Tarixçə üçün yeni qeyd yarat
-                const newDepositKey = db.ref('deposits').push().key;
-                allUpdates[`/deposits/${newDepositKey}`] = {
-                    uid: uid,
-                    amount: finalReward,
-                    createdAt: firebase.database.ServerValue.TIMESTAMP,
-                    type: 'deposit',
-                    description: 'Para Yağışı Mükafatı'
-                };
-            }
-        }
-        allUpdates[`/moneyRainEvent/leaderboard`] = leaderboard;
-        allUpdates[`/moneyRainEvent/status`] = 'finished';
-        db.ref().update(allUpdates); // Bütün məlumatları bir dəfəyə yaz
-        setTimeout(() => {
-            db.ref('moneyRainEvent').update({ status: 'idle' });
-        }, 30000);
-    }
+    function initializeMoneyRainPanel() { const moneyRainRef = db.ref('moneyRainEvent'); const statusEl = document.getElementById('moneyRainStatus'); const startBtn = document.getElementById('startMoneyRainBtn'); const stopBtn = document.getElementById('stopMoneyRainBtn'); moneyRainRef.on('value', (snapshot) => { let status = 'idle'; if (snapshot.exists() && snapshot.val().status) { status = snapshot.val().status; } statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1); statusEl.className = 'status-display ' + status; if (status === 'idle' || status === 'finished') { startBtn.disabled = false; stopBtn.disabled = true; } else { startBtn.disabled = true; stopBtn.disabled = false; } }); startBtn.addEventListener('click', startMoneyRain); stopBtn.addEventListener('click', stopMoneyRain); }
+    function startMoneyRain() { const amountInput = document.getElementById('moneyRainAmount'); const durationInput = document.getElementById('moneyRainDuration'); const amount = parseFloat(amountInput.value); const duration = parseInt(durationInput.value, 10); if (isNaN(amount) || amount <= 0) { alert("Zəhmət olmasa, düzgün müsbət məbləğ daxil edin."); return; } if (isNaN(duration) || duration < 10) { alert("Oyun müddəti ən az 10 saniyə olmalıdır."); return; } if (!confirm(`${amount.toFixed(2)} AZN məbləğində Para Yağışını başlatmaq istədiyinizə əminsiniz?`)) { return; } const eventData = { status: 'pending', totalAmount: amount, startTime: Date.now() + 30000, duration: duration * 1000, participants: null, leaderboard: null }; setTimeout(() => { db.ref('moneyRainEvent/status').set('active'); }, 30000); setTimeout(() => { db.ref('moneyRainEvent').once('value', snapshot => { const event = snapshot.val(); if(event && event.status === 'active') { calculateResultsFromAdmin(event); } }); }, 30000 + (duration * 1000) + 1000); db.ref('moneyRainEvent').set(eventData).then(() => alert("Para Yağışı başladılır! İstifadəçilər 30 saniyə sonra oyuna başlaya biləcəklər.")).catch(error => alert("Xəta: " + error.message)); }
+    function stopMoneyRain() { if (!confirm("Para Yağışını dayandırmaq istədiyinizə əminsiniz?")) { return; } db.ref('moneyRainEvent').update({ status: 'idle' }).then(() => alert("Para Yağışı uğurla dayandırıldı.")).catch(error => alert("Xəta: " + error.message)); }
+    function calculateResultsFromAdmin(eventData) { const participants = eventData.participants || {}; const totalAmount = eventData.totalAmount; let totalScore = 0; Object.values(participants).forEach(p => { totalScore += p.score; }); if (totalScore === 0) { db.ref('moneyRainEvent/status').set('finished'); setTimeout(() => { db.ref('moneyRainEvent').update({ status: 'idle' }); }, 15000); return; } const leaderboard = {}; const allUpdates = {}; for (const uid in participants) { const participant = participants[uid]; const reward = (participant.score / totalScore) * totalAmount; const finalReward = parseFloat(reward.toFixed(2)); if (finalReward > 0) { leaderboard[uid] = { displayName: participant.displayName, score: participant.score, reward: finalReward }; allUpdates[`/balances/${uid}/amount`] = firebase.database.ServerValue.increment(finalReward); const newDepositKey = db.ref('deposits').push().key; allUpdates[`/deposits/${newDepositKey}`] = { uid: uid, amount: finalReward, createdAt: firebase.database.ServerValue.TIMESTAMP, type: 'deposit', description: 'Para Yağışı Mükafatı' }; } } allUpdates[`/moneyRainEvent/leaderboard`] = leaderboard; allUpdates[`/moneyRainEvent/status`] = 'finished'; db.ref().update(allUpdates); setTimeout(() => { db.ref('moneyRainEvent').update({ status: 'idle' }); }, 30000); }
 </script>
 </body>
 </html>
