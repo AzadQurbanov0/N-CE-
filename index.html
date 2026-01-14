@@ -1,60 +1,107 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="az">
 <head>
     <meta charset="UTF-8">
-    <title>Azad Store | Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I N C I | Admin Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: sans-serif; background: #f1f5f9; padding: 20px; }
-        .box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        input, select { width: 100%; padding: 10px; margin: 5px 0 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { background: #2563eb; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
-        .red-btn { background: #dc2626; margin-left: 5px; }
-        .item-list { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
-        .order-card { background: #fff; padding: 15px; border-left: 5px solid #2563eb; margin-bottom: 10px; border-radius: 5px; }
+        :root { --primary: #2563eb; --bg: #f1f5f9; --white: #ffffff; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
+        h2 { color: var(--primary); text-align: center; font-weight: 800; }
+        .container { max-width: 800px; margin: auto; }
+        
+        .box { background: var(--white); padding: 25px; border-radius: 15px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        h3 { margin-top: 0; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 20px; }
+
+        input, select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font-size: 14px; }
+        
+        button { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: 0.3s; width: 100%; }
+        button:hover { opacity: 0.9; }
+        
+        .red-btn { background: #ef4444; width: auto; padding: 8px 12px; font-size: 12px; }
+
+        /* Siyahılar */
+        .item-list { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #f1f5f9; align-items: center; }
+        .item-list:last-child { border: none; }
+        .item-info { display: flex; align-items: center; gap: 15px; }
+        .item-info img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; }
+
+        /* Sifariş Kartı */
+        .order-card { background: var(--white); padding: 20px; border-radius: 12px; border-left: 6px solid var(--primary); margin-bottom: 15px; position: relative; }
+        .order-id { font-weight: 800; color: var(--primary); }
+        .order-details { margin: 10px 0; font-size: 14px; line-height: 1.6; }
+        .status-badge { background: #dbeafe; color: var(--primary); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
     </style>
 </head>
 <body>
 
-    <h2>Admin Panel</h2>
+    <div class="container">
+        <h2><i class="fa-solid fa-gears"></i> I N C I Admin</h2>
 
-    <div class="box">
-        <h3>Yeni Məhsul Əlavə Et</h3>
-        <input id="pName" placeholder="Ad">
-        <input id="pPrice" placeholder="Qiymət">
-        <input id="pImg" placeholder="Şəkil Linki">
-        <button onclick="addProduct()">Əlavə Et</button>
-    </div>
+        <div class="box">
+            <h3><i class="fa-solid fa-plus"></i> Yeni Məhsul Əlavə Et</h3>
+            <input id="pName" placeholder="Məhsulun adı">
+            <input id="pPrice" placeholder="Qiymət (məs: 45)" type="number">
+            <input id="pImg" placeholder="Şəkil linki (URL)">
+            <textarea id="pDesc" placeholder="Məhsul haqqında qısa məlumat" rows="3"></textarea>
+            <button onclick="addProduct()">Sistemə Əlavə Et</button>
+        </div>
 
-    <div class="box">
-        <h3>Məhsul Siyahısı (Silmək üçün)</h3>
-        <div id="adminProductList"></div>
-    </div>
+        <div class="box">
+            <h3><i class="fa-solid fa-truck-loading"></i> Gələn Sifarişlər</h3>
+            <div id="adminOrders"></div>
+        </div>
 
-    <div class="box">
-        <h3>Sifarişlər</h3>
-        <div id="adminOrders"></div>
+        <div class="box">
+            <h3><i class="fa-solid fa-boxes-stacked"></i> Mövcud Məhsullar</h3>
+            <div id="adminProductList"></div>
+        </div>
     </div>
 
 <script>
+    // Məhsul əlavə etmə
     function addProduct() {
+        const name = document.getElementById("pName").value;
+        const price = document.getElementById("pPrice").value;
+        const img = document.getElementById("pImg").value;
+        const desc = document.getElementById("pDesc").value;
+
+        if(!name || !price) return alert("Ad və qiymət mütləqdir!");
+
         let products = JSON.parse(localStorage.getItem("products")) || [];
-        products.push({ id: Date.now(), name: document.getElementById("pName").value, price: document.getElementById("pPrice").value, img: document.getElementById("pImg").value });
+        products.push({ 
+            id: Date.now(), 
+            name: name, 
+            price: price, 
+            img: img || 'https://via.placeholder.com/150',
+            desc: desc 
+        });
+        
         localStorage.setItem("products", JSON.stringify(products));
+        alert("Məhsul bazaya əlavə edildi!");
         location.reload();
     }
 
+    // Məhsulları göstər
     function renderAdminProducts() {
         let products = JSON.parse(localStorage.getItem("products")) || [];
         document.getElementById("adminProductList").innerHTML = products.map(p => `
             <div class="item-list">
-                <span>${p.name} - ${p.price} AZN</span>
-                <button class="red-btn" onclick="deleteProduct(${p.id})">Məhsulu Sil</button>
+                <div class="item-info">
+                    <img src="${p.img}">
+                    <div>
+                        <b>${p.name}</b><br>
+                        <small>${p.price} AZN</small>
+                    </div>
+                </div>
+                <button class="red-btn" onclick="deleteProduct(${p.id})">Sil</button>
             </div>
         `).join('');
     }
 
     function deleteProduct(id) {
-        if(confirm("Bu məhsulu silmək istəyirsiz?")) {
+        if(confirm("Bu məhsulu silməyə əminsiniz?")) {
             let products = JSON.parse(localStorage.getItem("products")) || [];
             products = products.filter(p => p.id != id);
             localStorage.setItem("products", JSON.stringify(products));
@@ -62,30 +109,48 @@
         }
     }
 
+    // Sifarişləri göstər
     function renderOrders() {
         let orders = JSON.parse(localStorage.getItem("orders")) || [];
-        document.getElementById("adminOrders").innerHTML = orders.reverse().map(o => `
+        const container = document.getElementById("adminOrders");
+
+        if(orders.length === 0) {
+            container.innerHTML = "<p style='text-align:center; color:#94a3b8;'>Hələ sifariş yoxdur.</p>";
+            return;
+        }
+
+        container.innerHTML = orders.reverse().map(o => `
             <div class="order-card">
-                <b>ID: #${o.id}</b> | Müştəri: ${o.customer}<br>
-                Status: <b>${o.status}</b><br>
+                <div class="order-id">Sifariş #${o.id}</div>
+                <div class="order-details">
+                    <i class="fa-solid fa-user"></i> <b>${o.customer}</b><br>
+                    <i class="fa-solid fa-phone"></i> ${o.phone || 'Qeyd edilməyib'}<br>
+                    <i class="fa-solid fa-money-bill"></i> Cəmi: ${o.total || o.items?.reduce((a,b)=>a+Number(b.price),0)+' AZN'}<br>
+                    <span class="status-badge">${o.status}</span>
+                </div>
                 <select onchange="updateStatus(${o.id}, this.value)">
                     <option value="">Statusu Dəyiş</option>
+                    <option value="Sifariş verildi">Sifariş verildi</option>
                     <option value="Hazırlanır">Hazırlanır</option>
-                    <option value="Paketleme">Paketleme</option>
-                    <option value="Yola düşüb">Yola düşüb</option>
+                    <option value="Kuryerə verildi">Kuryerə verildi</option>
                     <option value="Təhvil verildi">Təhvil verildi</option>
                 </select>
-                <button class="red-btn" onclick="deleteOrder(${o.id})">Sifarişi Sil</button>
+                <div style="text-align:right; margin-top:10px;">
+                    <button class="red-btn" onclick="deleteOrder(${o.id})">Sifarişi Arxivlə/Sil</button>
+                </div>
             </div>
         `).join('');
     }
 
     function updateStatus(id, stat) {
+        if(!stat) return;
         let orders = JSON.parse(localStorage.getItem("orders")) || [];
         let idx = orders.findIndex(o => o.id == id);
-        orders[idx].status = stat;
-        localStorage.setItem("orders", JSON.stringify(orders));
-        renderOrders();
+        if(idx !== -1) {
+            orders[idx].status = stat;
+            localStorage.setItem("orders", JSON.stringify(orders));
+            renderOrders();
+        }
     }
 
     function deleteOrder(id) {
@@ -97,6 +162,7 @@
         }
     }
 
+    // Səhifə açılanda işə düş
     renderAdminProducts();
     renderOrders();
 </script>
