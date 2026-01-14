@@ -4,15 +4,14 @@
     <meta charset="UTF-8">
     <title>I N C I | Admin Panel</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; color: #1c1e21; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
         .box { background: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         h3 { margin-top: 0; color: #2563eb; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; }
-        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0 18px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
-        button { background: #2563eb; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; }
-        button:hover { background: #1d4ed8; }
-        .order-card { border-left: 6px solid #2563eb; padding: 15px; margin-bottom: 15px; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .status-select { background: #f8fafc; border-color: #2563eb; font-weight: 600; width: auto; margin-right: 10px; }
-        .red-btn { background: #ef4444; width: auto; padding: 8px 15px; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0 18px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { background: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
+        .order-card, .p-item { border-left: 6px solid #2563eb; padding: 15px; margin-bottom: 10px; background: #fff; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .red-btn { background: #ef4444; width: auto; padding: 5px 15px; }
+        .status-select { width: auto; margin: 0; }
     </style>
 </head>
 <body>
@@ -22,26 +21,23 @@
         <input id="pName" placeholder="Məhsulun adı">
         <input id="pPrice" type="number" placeholder="Qiyməti (AZN)">
         <input id="pImg" placeholder="Şəkil URL (ibb.co linki)">
-        
-        <label>Kateqoriya:</label>
         <select id="pCategory">
             <option value="Elektronika">Elektronika</option>
             <option value="Şirniyyat">Şirniyyat</option>
             <option value="Geyim">Geyim</option>
             <option value="Ətirlər">Ətirlər</option>
-            <option value="Ayaqqabı">Ayaqqabı</option>
-            <option value="Şalvar">Şalvar</option>
-            <option value="Zinət əşyaları">Zinət əşyaları</option>
         </select>
-
-        <label>Etiket (Badge):</label>
         <select id="pTag">
-            <option value="">Yoxdur</option>
+            <option value="">Etiket yoxdur</option>
             <option value="Yeni">Yeni</option>
             <option value="Endirim">Endirim</option>
         </select>
-        
         <button onclick="addProduct()">Bazaya Göndər</button>
+    </div>
+
+    <div class="box">
+        <h3>Məhsul İdarəetməsi (Siyahı)</h3>
+        <div id="adminProductList">Yüklənir...</div>
     </div>
 
     <div class="box">
@@ -69,45 +65,57 @@
         const name = document.getElementById("pName").value;
         const price = document.getElementById("pPrice").value;
         const img = document.getElementById("pImg").value;
-        const cat = document.getElementById("pCategory").value;
+        const category = document.getElementById("pCategory").value;
         const tag = document.getElementById("pTag").value;
-        
-        if(!name || !price) return alert("Ad və qiymət mütləqdir!");
-
-        db.ref('products').push({ name, price, img, category: cat, tag });
-        alert("Məhsul " + cat + " bölməsinə əlavə edildi!");
-        location.reload();
+        if(!name || !price) return alert("Məlumatları tam doldurun!");
+        db.ref('products').push({ name, price, img, category, tag });
+        alert("Əlavə edildi!");
     }
 
+    // Məhsulları göstər və sil
+    db.ref('products').on('value', snap => {
+        let html = "";
+        snap.forEach(child => {
+            let p = child.val();
+            html += `<div class="p-item">
+                <span><b>${p.name}</b> - ${p.price} AZN (${p.category})</span>
+                <button class="red-btn" onclick="db.ref('products/${child.key}').remove()">Sil</button>
+            </div>`;
+        });
+        document.getElementById("adminProductList").innerHTML = html || "Məhsul yoxdur.";
+    });
+
+    // Sifarişləri idarə et
     db.ref('orders').on('value', snap => {
         let html = "";
         snap.forEach(child => {
             let o = child.val();
             html += `<div class="order-card">
-                <div style="display:flex; justify-content:space-between;">
-                    <b>Sifariş #${o.id}</b>
-                    <span style="color:#2563eb;">${o.total}</span>
+                <div>
+                    <b>#${o.id}</b> | ${o.customer}<br>
+                    <small>${o.items}</small>
                 </div>
-                <div style="margin: 10px 0; font-size: 14px;">
-                    👤 ${o.customer} (${o.phone})<br>
-                    📍 ${o.address || 'Ünvan qeyd edilməyib'}<br>
-                    📦 ${o.items}
+                <div>
+                    <select class="status-select" onchange="updateStatus('${child.key}', this.value)">
+                        <option ${o.status=='Sifariş verildi'?'selected':''}>Sifariş verildi</option>
+                        <option ${o.status=='Hazırlanır'?'selected':''}>Hazırlanır</option>
+                        <option ${o.status=='Paketləmə'?'selected':''}>Paketləmə</option>
+                        <option ${o.status=='Yola düşüb'?'selected':''}>Yola düşüb</option>
+                        <option ${o.status=='Təhvil verildi'?'selected':''}>Təhvil verildi</option>
+                    </select>
+                    <button class="red-btn" onclick="db.ref('orders/${child.key}').remove()">Sil</button>
                 </div>
-                <select class="status-select" onchange="updateStatus('${child.key}', this.value)">
-                    <option ${o.status=='Sifariş verildi'?'selected':''}>Sifariş verildi</option>
-                    <option ${o.status=='Hazırlanır'?'selected':''}>Hazırlanır</option>
-                    <option ${o.status=='Paketləmə'?'selected':''}>Paketləmə</option>
-                    <option ${o.status=='Yola düşüb'?'selected':''}>Yola düşüb</option>
-                    <option ${o.status=='Təhvil verildi'?'selected':''}>Təhvil verildi</option>
-                </select>
-                <button class="red-btn" onclick="deleteOrder('${child.key}')">Sil</button>
             </div>`;
         });
-        document.getElementById("adminOrders").innerHTML = html || "Sifariş yoxdur.";
+        document.getElementById("adminOrders").innerHTML = html;
     });
 
-    window.updateStatus = (key, st) => db.ref('orders/'+key).update({status: st});
-    window.deleteOrder = key => confirm("Silmək istəyirsiniz?") && db.ref('orders/'+key).remove();
+    function updateStatus(key, st) {
+        let now = new Date().toLocaleTimeString('az-AZ', {hour: '2-digit', minute:'2-digit'});
+        let updates = { status: st };
+        updates['time_' + st.replace(/\s/g, '_')] = now; // Statusa uyğun saatı qeyd edir
+        db.ref('orders/' + key).update(updates);
+    }
 </script>
 </body>
 </html>
