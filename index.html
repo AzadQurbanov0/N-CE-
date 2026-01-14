@@ -12,10 +12,9 @@
         .stat-card div { font-size: 22px; font-weight: bold; color: #2563eb; margin-top: 8px; }
         .box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         input, textarea, select { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { background: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s; }
-        button:hover { background: #1d4ed8; }
+        button { background: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; }
         .item-list { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
-        .red { background: #ef4444; width: auto; margin-top: 8px; padding: 6px 12px; font-size: 12px; }
+        .red { background: #ef4444; width: auto; padding: 6px 12px; font-size: 12px; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -24,16 +23,16 @@
     <h2>I N C I Admin Paneli</h2>
     <div class="stats-grid">
         <div class="stat-card"><h4>Toplam Sifariş</h4><div id="statCount">0</div></div>
-        <div class="stat-card" style="border-color: #10b981;"><h4>Ümumi Qazanc</h4><div id="statSum">0.00 AZN</div></div>
-        <div class="stat-card" style="border-color: #f59e0b;"><h4>Məhsul Sayı</h4><div id="statProd">0</div></div>
+        <div class="stat-card" style="border-color:#10b981"><h4>Ümumi Qazanc</h4><div id="statSum">0 AZN</div></div>
+        <div class="stat-card" style="border-color:#f59e0b"><h4>Məhsul Sayı</h4><div id="statProd">0</div></div>
     </div>
 
     <div class="box">
         <h3>Yeni Məhsul Əlavə Et</h3>
         <input id="pName" placeholder="Məhsulun adı">
         <input id="pPrice" placeholder="Qiyməti (AZN)">
-        <input id="pImg" placeholder="Şəkil URL (link)">
-        <textarea id="pDesc" placeholder="Məhsul haqqında qısa məlumat"></textarea>
+        <input id="pImg" placeholder="Şəkil URL">
+        <textarea id="pDesc" placeholder="Məlumat"></textarea>
         <button id="addBtn">Yadda saxla</button>
     </div>
 
@@ -57,51 +56,37 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Məhsul Əlavə Etmə Funksiyası
     document.getElementById("addBtn").onclick = function() {
         const name = document.getElementById("pName").value;
         const price = document.getElementById("pPrice").value;
         const img = document.getElementById("pImg").value;
         const desc = document.getElementById("pDesc").value;
-
         if(!name || !price) return alert("Ad və qiymət mütləqdir!");
 
         const id = Date.now();
-        set(ref(db, 'products/' + id), {
-            id: id,
-            name: name,
-            price: price,
-            img: img,
-            desc: desc
-        }).then(() => {
+        set(ref(db, 'products/' + id), { id, name, price, img, desc }).then(() => {
             alert("Məhsul paylaşıldı!");
-            document.querySelectorAll('input, textarea').forEach(el => el.value = "");
-        }).catch(err => alert("Xəta: " + err.message));
+            document.querySelectorAll('input, textarea').forEach(i => i.value = "");
+        });
     };
 
-    // Məhsulları və Statistikaları Yeniləmə
     onValue(ref(db, '/'), (snapshot) => {
         const data = snapshot.val() || {};
-        const products = data.products ? Object.values(data.products) : [];
+        const prods = data.products ? Object.values(data.products) : [];
         const orders = data.orders ? Object.values(data.orders) : [];
         
-        // Məhsul siyahısını göstər
-        document.getElementById("adminProductList").innerHTML = products.map(p => `
+        document.getElementById("statCount").innerText = orders.length;
+        document.getElementById("statProd").innerText = prods.length;
+        document.getElementById("statSum").innerText = orders.reduce((a, b) => a + parseFloat(b.total || 0), 0).toFixed(2) + " AZN";
+
+        document.getElementById("adminProductList").innerHTML = prods.map(p => `
             <div class="item-list">
                 <span><b>${p.name}</b> - ${p.price} AZN</span>
                 <button class="red" onclick="window.delProd(${p.id})">Sil</button>
             </div>`).join('');
-
-        // Statistikaları yenilə
-        let totalSum = orders.reduce((a, b) => a + parseFloat(b.total || 0), 0);
-        document.getElementById("statCount").innerText = orders.length;
-        document.getElementById("statSum").innerText = totalSum.toFixed(2) + " AZN";
-        document.getElementById("statProd").innerText = products.length;
     });
 
-    window.delProd = (id) => {
-        if(confirm("Silmək istəyirsiz?")) remove(ref(db, 'products/' + id));
-    };
+    window.delProd = (id) => { if(confirm("Silsin?")) remove(ref(db, 'products/' + id)); };
 </script>
 </body>
 </html>
