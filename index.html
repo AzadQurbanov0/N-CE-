@@ -2,100 +2,134 @@
 <html lang="az">
 <head>
     <meta charset="UTF-8">
-    <title>I N C I | Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I N C I | Admin Kontrol</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
-        .box { background: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        h3 { margin-top: 0; color: #2563eb; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; }
-        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0 18px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { background: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
-        .order-card, .p-item { border-left: 6px solid #2563eb; padding: 15px; margin-bottom: 10px; background: #fff; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .red-btn { background: #ef4444; width: auto; padding: 5px 15px; }
-        .status-select { width: auto; margin: 0; }
+        :root { --blue: #2563eb; --red: #ef4444; --green: #10b981; --gray: #f1f5f9; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f8fafc; margin: 0; padding: 20px; }
+        .wrapper { max-width: 800px; margin: auto; }
+        h2 { color: var(--blue); border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
+        
+        .btn { background: var(--blue); color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-red { background: var(--red); width: auto; font-size: 12px; padding: 5px 10px; }
+
+        /* Sifariş Kartları */
+        .order-box { border-left: 6px solid var(--blue); padding: 15px; background: white; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; }
+        .order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 10px; }
+        .customer-info p { margin: 4px 0; font-size: 14px; color: #444; }
+        .status-select { width: auto; margin: 0; padding: 5px; font-size: 13px; border-color: var(--blue); }
+        
+        /* Məhsul Siyahısı */
+        .prod-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .prod-item img { width: 40px; height: 40px; border-radius: 5px; object-fit: cover; }
     </style>
 </head>
 <body>
 
-    <div class="box">
-        <h3>Yeni Məhsul Əlavə Et</h3>
+<div class="wrapper">
+    <h2><i class="fas fa-user-shield"></i> I N C I Admin Panel</h2>
+
+    <div class="card">
+        <h3><i class="fas fa-plus-circle"></i> Yeni Məhsul</h3>
         <input id="pName" placeholder="Məhsulun adı">
         <input id="pPrice" type="number" placeholder="Qiyməti (AZN)">
         <input id="pImg" placeholder="Şəkil URL (ibb.co linki)">
         <select id="pCategory">
+            <option value="Pastalar">Pastalar</option>
+            <option value="Ayaqqabılar">Ayaqqabılar</option>
             <option value="Elektronika">Elektronika</option>
-            <option value="Şirniyyat">Şirniyyat</option>
-            <option value="Geyim">Geyim</option>
             <option value="Ətirlər">Ətirlər</option>
         </select>
         <select id="pTag">
-            <option value="">Etiket yoxdur</option>
+            <option value="">Etiket Seçin (İstəyə bağlı)</option>
             <option value="Yeni">Yeni</option>
             <option value="Endirim">Endirim</option>
         </select>
-        <button onclick="addProduct()">Bazaya Göndər</button>
+        <button class="btn" onclick="addProduct()">Bazaya Əlavə Et</button>
     </div>
 
-    <div class="box">
-        <h3>Məhsul İdarəetməsi (Siyahı)</h3>
-        <div id="adminProductList">Yüklənir...</div>
+    <div class="card">
+        <h3><i class="fas fa-shopping-cart"></i> Gələn Sifarişlər</h3>
+        <div id="orderList">Yüklənir...</div>
     </div>
 
-    <div class="box">
-        <h3>Gələn Sifarişlər</h3>
-        <div id="adminOrders">Yüklənir...</div>
+    <div class="card">
+        <h3><i class="fas fa-boxes-stacked"></i> Mövcud Məhsullar</h3>
+        <div id="productList">Yüklənir...</div>
     </div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
+    // FİREBASE AYARLARI
     const firebaseConfig = {
-        apiKey: "AIzaSyBykQbnz828fnJSYpaWZb9lVMt76y5uYp8",
-        authDomain: "azad042-65afa.firebaseapp.com",
-        databaseURL: "https://azad042-65afa-default-rtdb.firebaseio.com",
-        projectId: "azad042-65afa",
-        storageBucket: "azad042-65afa.firebasestorage.app",
-        messagingSenderId: "568634268703",
-        appId: "1:568634268703:web:3c3dd14a071b0ffe73492a"
+        databaseURL: "https://azad042-65afa-default-rtdb.firebaseio.com"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // MƏHSUL ƏLAVƏ ETMƏ
     function addProduct() {
         const name = document.getElementById("pName").value;
         const price = document.getElementById("pPrice").value;
         const img = document.getElementById("pImg").value;
         const category = document.getElementById("pCategory").value;
         const tag = document.getElementById("pTag").value;
-        if(!name || !price) return alert("Məlumatları tam doldurun!");
-        db.ref('products').push({ name, price, img, category, tag });
-        alert("Əlavə edildi!");
+
+        if(!name || !price || !img) return alert("Ad, Qiymət və Şəkil URL mütləqdir!");
+
+        db.ref('products').push({
+            name, price: parseFloat(price), img, category, tag
+        }).then(() => {
+            alert("Məhsul əlavə edildi!");
+            document.getElementById("pName").value = "";
+            document.getElementById("pPrice").value = "";
+            document.getElementById("pImg").value = "";
+        });
     }
 
-    // Məhsulları göstər və sil
+    // MƏHSUL SİYAHISINI GÖSTƏR VƏ SİL
     db.ref('products').on('value', snap => {
         let html = "";
         snap.forEach(child => {
             let p = child.val();
-            html += `<div class="p-item">
-                <span><b>${p.name}</b> - ${p.price} AZN (${p.category})</span>
-                <button class="red-btn" onclick="db.ref('products/${child.key}').remove()">Sil</button>
+            html += `
+            <div class="prod-item">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <img src="${p.img}">
+                    <span><b>${p.name}</b> (${p.price} AZN)</span>
+                </div>
+                <button class="btn btn-red" onclick="db.ref('products/${child.key}').remove()">Sil</button>
             </div>`;
         });
-        document.getElementById("adminProductList").innerHTML = html || "Məhsul yoxdur.";
+        document.getElementById("productList").innerHTML = html || "Heç bir məhsul yoxdur.";
     });
 
-    // Sifarişləri idarə et
+    // SİFARİŞLƏRİ GÖSTƏR VƏ STATUSU SAATLA YENİLƏ
     db.ref('orders').on('value', snap => {
         let html = "";
         snap.forEach(child => {
             let o = child.val();
-            html += `<div class="order-card">
-                <div>
-                    <b>#${o.id}</b> | ${o.customer}<br>
-                    <small>${o.items}</small>
+            html += `
+            <div class="order-box">
+                <div class="order-header">
+                    <b>ID: #${o.id}</b>
+                    <span style="color:var(--green); font-weight:bold;">${o.total}</span>
                 </div>
-                <div>
+                <div class="customer-info">
+                    <p><i class="fas fa-user"></i> <b>Ad:</b> ${o.customer}</p>
+                    <p><i class="fas fa-phone"></i> <b>Tel:</b> ${o.phone}</p>
+                    <p><i class="fas fa-location-dot"></i> <b>Ünvan:</b> ${o.address}</p>
+                    <p><i class="fas fa-box"></i> <b>Məhsullar:</b> <span style="color:var(--blue);">${o.items}</span></p>
+                </div>
+                <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
                     <select class="status-select" onchange="updateStatus('${child.key}', this.value)">
                         <option ${o.status=='Sifariş verildi'?'selected':''}>Sifariş verildi</option>
                         <option ${o.status=='Hazırlanır'?'selected':''}>Hazırlanır</option>
@@ -103,18 +137,26 @@
                         <option ${o.status=='Yola düşüb'?'selected':''}>Yola düşüb</option>
                         <option ${o.status=='Təhvil verildi'?'selected':''}>Təhvil verildi</option>
                     </select>
-                    <button class="red-btn" onclick="db.ref('orders/${child.key}').remove()">Sil</button>
+                    <button class="btn btn-red" onclick="if(confirm('Sifarişi silmək istəyirsiz?')) db.ref('orders/${child.key}').remove()">Sifarişi Sil</button>
                 </div>
             </div>`;
         });
-        document.getElementById("adminOrders").innerHTML = html;
+        document.getElementById("orderList").innerHTML = html || "Hələ ki, yeni sifariş yoxdur.";
     });
 
+    // STATUSU SAATLA BİRGƏ YENİLƏYƏN FUNKSİYA
     function updateStatus(key, st) {
-        let now = new Date().toLocaleTimeString('az-AZ', {hour: '2-digit', minute:'2-digit'});
+        let now = new Date();
+        let timeStr = now.toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' });
+        
         let updates = { status: st };
-        updates['time_' + st.replace(/\s/g, '_')] = now; // Statusa uyğun saatı qeyd edir
-        db.ref('orders/' + key).update(updates);
+        // Status adına uyğun açar yaradırıq (məs: time_Hazırlanır)
+        let timeKey = 'time_' + st.replace(/\s/g, '_'); 
+        updates[timeKey] = timeStr;
+
+        db.ref('orders/' + key).update(updates).then(() => {
+            console.log("Status yeniləndi: " + st + " saat: " + timeStr);
+        });
     }
 </script>
 </body>
