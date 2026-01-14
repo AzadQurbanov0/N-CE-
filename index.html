@@ -11,110 +11,115 @@
         .stat-card h4 { margin: 0; color: #64748b; font-size: 13px; text-transform: uppercase; }
         .stat-card div { font-size: 22px; font-weight: bold; color: #2563eb; margin-top: 8px; }
         .box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        input, textarea { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        input, textarea, select { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         button { background: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s; }
         button:hover { background: #1d4ed8; }
+        .order-card { background: white; padding: 18px; border-left: 6px solid #2563eb; margin-bottom: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .red { background: #ef4444; width: auto; margin-top: 8px; padding: 6px 12px; font-size: 12px; }
         .item-list { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
-        .red { background: #ef4444; width: auto; margin-top: 8px; padding: 6px 12px; font-size: 11px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>I N C I Admin Paneli</h2>
-
+    <h2>I N C I Admin Paneli (Canlı)</h2>
     <div class="stats-grid">
-        <div class="stat-card"><h4>Toplam Sifariş</h4><div id="statCount">0</div></div>
-        <div class="stat-card" style="border-color: #10b981;"><h4>Ümumi Qazanc</h4><div id="statSum">0.00 AZN</div></div>
-        <div class="stat-card" style="border-color: #f59e0b;"><h4>Məhsul Sayı</h4><div id="statProd">0</div></div>
+        <div class="stat-card"><h4>Sifariş</h4><div id="statCount">0</div></div>
+        <div class="stat-card" style="border-color: #10b981;"><h4>Qazanc</h4><div id="statSum">0 AZN</div></div>
+        <div class="stat-card" style="border-color: #f59e0b;"><h4>Məhsul</h4><div id="statProd">0</div></div>
     </div>
 
     <div class="box">
         <h3>Yeni Məhsul Əlavə Et</h3>
         <input id="pName" placeholder="Məhsulun adı">
         <input id="pPrice" placeholder="Qiyməti (AZN)">
-        <input id="pImg" placeholder="Şəkil URL (link)">
-        <textarea id="pDesc" placeholder="Məhsul haqqında məlumat"></textarea>
+        <input id="pImg" placeholder="Şəkil URL">
+        <textarea id="pDesc" placeholder="Məlumat"></textarea>
         <button id="addBtn">Yadda saxla</button>
     </div>
 
-    <div class="box"><h3>Bazadakı Məhsullar</h3><div id="adminProductList"></div></div>
+    <div class="box"><h3>Sifarişlər</h3><div id="adminOrders"></div></div>
+    <div class="box"><h3>Məhsullar</h3><div id="adminProductList"></div></div>
 </div>
 
-<script type="module">
-    // Firebase Kitabxanaları
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-    // Şəkildəki Firebase məlumatlarınız
+<script>
     const firebaseConfig = {
-        apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw",
-        authDomain: "niceuc-e5986.firebaseapp.com",
-        databaseURL: "https://niceuc-e5986-default-rtdb.firebaseio.com",
-        projectId: "niceuc-e5986",
-        storageBucket: "niceuc-e5986.firebasestorage.app",
-        messagingSenderId: "242221260650",
-        appId: "1:242221260650:web:34abd91f7f0ef95e8dcf13"
+        apiKey: "AIzaSyBykQbnz828fnJSYpaWZb9lVMt76y5uYp8",
+        authDomain: "azad042-65afa.firebaseapp.com",
+        databaseURL: "https://azad042-65afa-default-rtdb.firebaseio.com",
+        projectId: "azad042-65afa",
+        storageBucket: "azad042-65afa.firebasestorage.app",
+        messagingSenderId: "568634268703",
+        appId: "1:568634268703:web:3c3dd14a071b0ffe73492a"
     };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    // Məhsul əlavə etmək funksiyası
+    // Məhsul Əlavə Et
     document.getElementById("addBtn").onclick = function() {
         const name = document.getElementById("pName").value;
         const price = document.getElementById("pPrice").value;
         const img = document.getElementById("pImg").value;
         const desc = document.getElementById("pDesc").value;
+        if(!name || !price) return alert("Ad və qiymət yazın!");
 
-        if(!name || !price) return alert("Ad və qiymət mütləqdir!");
-
-        const id = Date.now();
-        // Verilənlər bazasına yazırıq
-        set(ref(db, 'products/' + id), {
-            id: id,
-            name: name,
-            price: price,
-            img: img,
-            desc: desc
-        }).then(() => {
-            alert("Məhsul bazaya əlavə edildi!");
-            // Sahələri təmizlə
-            document.getElementById("pName").value = "";
-            document.getElementById("pPrice").value = "";
-            document.getElementById("pImg").value = "";
-            document.getElementById("pDesc").value = "";
-        }).catch((error) => {
-            alert("Xəta baş verdi: " + error.message);
-        });
+        db.ref('products').push({ name, price, img, desc });
+        alert("Məhsul əlavə edildi!");
+        location.reload();
     };
 
-    // Bazadakı dəyişiklikləri izlə və səhifədə göstər
-    onValue(ref(db, '/'), (snapshot) => {
-        const data = snapshot.val() || {};
-        const prods = data.products ? Object.values(data.products) : [];
-        const orders = data.orders ? Object.values(data.orders) : [];
-        
-        // Statistikalar
-        document.getElementById("statCount").innerText = orders.length;
-        document.getElementById("statProd").innerText = prods.length;
-        let total = orders.reduce((sum, item) => sum + parseFloat(item.total || 0), 0);
-        document.getElementById("statSum").innerText = total.toFixed(2) + " AZN";
-
-        // Siyahı
-        document.getElementById("adminProductList").innerHTML = prods.map(p => `
-            <div class="item-list">
-                <span><b>${p.name}</b> - ${p.price} AZN</span>
-                <button class="red" onclick="window.delProduct(${p.id})">Sil</button>
-            </div>`).join('');
+    // Məhsulları Göstər
+    db.ref('products').on('value', snap => {
+        let products = snap.val();
+        let html = "";
+        let count = 0;
+        for(let id in products) {
+            count++;
+            html += `<div class="item-list">
+                <span><b>${products[id].name}</b> - ${products[id].price} AZN</span>
+                <button class="red" onclick="deleteProduct('${id}')">Sil</button>
+            </div>`;
+        }
+        document.getElementById("adminProductList").innerHTML = html;
+        document.getElementById("statProd").innerText = count;
     });
 
-    // Məhsul silmə funksiyası
-    window.delProduct = (id) => {
-        if(confirm("Silmək istəyirsiniz?")) {
-            remove(ref(db, 'products/' + id));
+    // Sifarişləri Göstər
+    db.ref('orders').on('value', snap => {
+        let orders = snap.val();
+        let html = "";
+        let totalSum = 0;
+        let count = 0;
+        for(let id in orders) {
+            count++;
+            let o = orders[id];
+            totalSum += parseFloat(o.total || 0);
+            html += `<div class="order-card">
+                <b>Sifariş #${o.id}</b> - <span style="color:#10b981;">${o.total}</span><br>
+                👤 ${o.customer} (${o.phone})<br>
+                📍 ${o.address}<br>
+                📦 ${o.items ? o.items.join(", ") : ""}<br>
+                Status: <b>${o.status}</b>
+                <select onchange="updateStatus('${id}', this.value)">
+                    <option value="">Dəyiş</option>
+                    <option value="Hazırlanır">Hazırlanır</option>
+                    <option value="Kuryerə verildi">Kuryerə verildi</option>
+                    <option value="Təhvil verildi">Təhvil verildi</option>
+                </select>
+                <button class="red" onclick="deleteOrder('${id}')">Sil</button>
+            </div>`;
         }
-    };
+        document.getElementById("adminOrders").innerHTML = html;
+        document.getElementById("statCount").innerText = count;
+        document.getElementById("statSum").innerText = totalSum.toFixed(2) + " AZN";
+    });
+
+    window.deleteProduct = id => db.ref('products/' + id).remove();
+    window.deleteOrder = id => db.ref('orders/' + id).remove();
+    window.updateStatus = (id, st) => db.ref('orders/' + id).update({status: st});
 </script>
 </body>
 </html>
