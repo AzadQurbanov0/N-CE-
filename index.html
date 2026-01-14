@@ -19,10 +19,15 @@
         .btn-red { background: var(--red); width: auto; font-size: 12px; padding: 5px 10px; }
 
         /* Sifariş Kartları */
-        .order-box { border-left: 6px solid var(--blue); padding: 15px; background: white; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; }
+        .order-box { border-left: 6px solid var(--blue); padding: 15px; background: white; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 10px; }
         .customer-info p { margin: 4px 0; font-size: 14px; color: #444; }
-        .status-select { width: auto; margin: 0; padding: 5px; font-size: 13px; border-color: var(--blue); }
+        
+        /* Məhsul Şəkilləri (Sifariş daxilində) */
+        .order-images { display: flex; gap: 8px; margin: 10px 0; overflow-x: auto; padding: 5px 0; }
+        .order-images img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; border: 1px solid #ddd; }
+        
+        .status-select { width: auto; margin: 0; padding: 5px; font-size: 13px; border-color: var(--blue); border-radius: 5px; }
         
         /* Məhsul Siyahısı */
         .prod-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
@@ -38,17 +43,12 @@
         <h3><i class="fas fa-plus-circle"></i> Yeni Məhsul</h3>
         <input id="pName" placeholder="Məhsulun adı">
         <input id="pPrice" type="number" placeholder="Qiyməti (AZN)">
-        <input id="pImg" placeholder="Şəkil URL (ibb.co linki)">
+        <input id="pImg" placeholder="Şəkil URL">
         <select id="pCategory">
             <option value="Pastalar">Pastalar</option>
             <option value="Ayaqqabılar">Ayaqqabılar</option>
             <option value="Elektronika">Elektronika</option>
             <option value="Ətirlər">Ətirlər</option>
-        </select>
-        <select id="pTag">
-            <option value="">Etiket Seçin (İstəyə bağlı)</option>
-            <option value="Yeni">Yeni</option>
-            <option value="Endirim">Endirim</option>
         </select>
         <button class="btn" onclick="addProduct()">Bazaya Əlavə Et</button>
     </div>
@@ -68,26 +68,18 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
-    // FİREBASE AYARLARI
-    const firebaseConfig = {
-        databaseURL: "https://azad042-65afa-default-rtdb.firebaseio.com"
-    };
-    firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp({ databaseURL: "https://azad042-65afa-default-rtdb.firebaseio.com" });
     const db = firebase.database();
 
-    // MƏHSUL ƏLAVƏ ETMƏ
     function addProduct() {
         const name = document.getElementById("pName").value;
         const price = document.getElementById("pPrice").value;
         const img = document.getElementById("pImg").value;
         const category = document.getElementById("pCategory").value;
-        const tag = document.getElementById("pTag").value;
 
-        if(!name || !price || !img) return alert("Ad, Qiymət və Şəkil URL mütləqdir!");
+        if(!name || !price || !img) return alert("Bütün sahələri doldurun!");
 
-        db.ref('products').push({
-            name, price: parseFloat(price), img, category, tag
-        }).then(() => {
+        db.ref('products').push({ name, price: parseFloat(price), img, category }).then(() => {
             alert("Məhsul əlavə edildi!");
             document.getElementById("pName").value = "";
             document.getElementById("pPrice").value = "";
@@ -95,67 +87,70 @@
         });
     }
 
-    // MƏHSUL SİYAHISINI GÖSTƏR VƏ SİL
     db.ref('products').on('value', snap => {
         let html = "";
         snap.forEach(child => {
             let p = child.val();
-            html += `
-            <div class="prod-item">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <img src="${p.img}">
-                    <span><b>${p.name}</b> (${p.price} AZN)</span>
-                </div>
+            html += `<div class="prod-item">
+                <div style="display:flex; align-items:center; gap:10px;"><img src="${p.img}"><span><b>${p.name}</b></span></div>
                 <button class="btn btn-red" onclick="db.ref('products/${child.key}').remove()">Sil</button>
             </div>`;
         });
-        document.getElementById("productList").innerHTML = html || "Heç bir məhsul yoxdur.";
+        document.getElementById("productList").innerHTML = html || "Məhsul yoxdur.";
     });
 
-    // SİFARİŞLƏRİ GÖSTƏR VƏ STATUSU SAATLA YENİLƏ
+    // SİFARİŞLƏR VƏ ŞƏKİLLƏR
     db.ref('orders').on('value', snap => {
         let html = "";
         snap.forEach(child => {
             let o = child.val();
+            let imagesHtml = o.itemImages ? o.itemImages.map(img => `<img src="${img}">`).join('') : '';
+            
             html += `
             <div class="order-box">
                 <div class="order-header">
-                    <b>ID: #${o.id}</b>
+                    <b>ID: #${o.id} <span style="font-size:12px; color:gray; margin-left:10px;">(Saat: ${o.orderTime || '?'})</span></b>
                     <span style="color:var(--green); font-weight:bold;">${o.total}</span>
                 </div>
                 <div class="customer-info">
-                    <p><i class="fas fa-user"></i> <b>Ad:</b> ${o.customer}</p>
+                    <p><i class="fas fa-user"></i> <b>Müştəri:</b> ${o.customer}</p>
                     <p><i class="fas fa-phone"></i> <b>Tel:</b> ${o.phone}</p>
                     <p><i class="fas fa-location-dot"></i> <b>Ünvan:</b> ${o.address}</p>
-                    <p><i class="fas fa-box"></i> <b>Məhsullar:</b> <span style="color:var(--blue);">${o.items}</span></p>
+                    <p><i class="fas fa-box-open"></i> <b>Sifariş:</b> ${o.items}</p>
                 </div>
+                
+                <div class="order-images">
+                    ${imagesHtml}
+                </div>
+
                 <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
                     <select class="status-select" onchange="updateStatus('${child.key}', this.value)">
-                        <option ${o.status=='Sifariş verildi'?'selected':''}>Sifariş verildi</option>
-                        <option ${o.status==''?'selected':''}></option>
-                        <option ${o.status=='Paketləmə'?'selected':''}>Paketləmə</option>
-                        <option ${o.status=='Yola düşüb'?'selected':''}>Yola düşüb</option>
-                        <option ${o.status=='Təhvil verildi'?'selected':''}>Təhvil verildi</option>
+                        <option value="Sifariş verildi" ${o.status=='Sifariş verildi'?'selected':''}>Sifariş verildi</option>
+                        <option value="Paketləmə" ${o.status=='Paketləmə'?'selected':''}>Paketləmə</option>
+                        <option value="Yola düşüb" ${o.status=='Yola düşüb'?'selected':''}>Yola düşüb</option>
+                        <option value="Təhvil verildi" ${o.status=='Təhvil verildi'?'selected':''}>Təhvil verildi</option>
                     </select>
-                    <button class="btn btn-red" onclick="if(confirm('Sifarişi silmək istəyirsiz?')) db.ref('orders/${child.key}').remove()">Sifarişi Sil</button>
+                    <button class="btn btn-red" onclick="if(confirm('Silinsin?')) db.ref('orders/${child.key}').remove()">Sil</button>
                 </div>
             </div>`;
         });
-        document.getElementById("orderList").innerHTML = html || "Hələ ki, yeni sifariş yoxdur.";
+        document.getElementById("orderList").innerHTML = html || "Sifariş yoxdur.";
     });
 
-    // STATUSU SAATLA BİRGƏ YENİLƏYƏN FUNKSİYA
+    // STATUS VƏ SAATI MAĞAZA İLƏ UYĞUN YENİLƏ
     function updateStatus(key, st) {
         let now = new Date();
-        let timeStr = now.toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' });
+        let timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
         
         let updates = { status: st };
-        // Status adına uyğun açar yaradırıq (məs: time_Hazırlanır)
-        let timeKey = 'time_' + st.replace(/\s/g, '_'); 
-        updates[timeKey] = timeStr;
+
+        // Mağaza (User) tərəfindəki izləmə panelində görünən saat açarları:
+        if(st === "Paketləmə") updates.packTime = timeStr;
+        if(st === "Yola düşüb") updates.courierTime = timeStr;
+        if(st === "Təhvil verildi") updates.deliveryTime = timeStr;
 
         db.ref('orders/' + key).update(updates).then(() => {
-            console.log("Status yeniləndi: " + st + " saat: " + timeStr);
+            console.log("Status: " + st + " | Saat: " + timeStr);
         });
     }
 </script>
