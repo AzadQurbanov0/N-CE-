@@ -132,7 +132,7 @@
                 <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
                     <select class="status-select" onchange="updateStatus('${child.key}', this.value)">
                         <option ${o.status=='Sifariş verildi'?'selected':''}>Sifariş verildi</option>
-                        <option ${o.status=='Hazırlanır'?'selected':''}>Hazırlanır</option>
+                        <option ${o.status==''?'selected':''}></option>
                         <option ${o.status=='Paketləmə'?'selected':''}>Paketləmə</option>
                         <option ${o.status=='Yola düşüb'?'selected':''}>Yola düşüb</option>
                         <option ${o.status=='Təhvil verildi'?'selected':''}>Təhvil verildi</option>
