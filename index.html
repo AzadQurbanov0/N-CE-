@@ -2,144 +2,134 @@
 <html lang="az">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>I N C I | Admin Panel</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>I N C I | Admin</title>
     <style>
-        :root { --primary: #2563eb; --bg: #f1f5f9; --white: #ffffff; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
-        h2 { color: var(--primary); text-align: center; font-weight: 800; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; padding: 20px; color: #1e293b; }
         .container { max-width: 800px; margin: auto; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-bottom: 4px solid #2563eb; }
+        .stat-card h4 { margin: 0; color: #64748b; font-size: 13px; text-transform: uppercase; }
+        .stat-card div { font-size: 22px; font-weight: bold; color: #2563eb; margin-top: 8px; }
         
-        .box { background: var(--white); padding: 25px; border-radius: 15px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        h3 { margin-top: 0; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 20px; }
-
-        input, select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font-size: 14px; }
+        .box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        input, textarea, select { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { background: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #1d4ed8; }
         
-        button { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: 0.3s; width: 100%; }
-        button:hover { opacity: 0.9; }
-        
-        .red-btn { background: #ef4444; width: auto; padding: 8px 12px; font-size: 12px; }
-
-        /* Siyahılar */
-        .item-list { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #f1f5f9; align-items: center; }
-        .item-list:last-child { border: none; }
-        .item-info { display: flex; align-items: center; gap: 15px; }
-        .item-info img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; }
-
-        /* Sifariş Kartı */
-        .order-card { background: var(--white); padding: 20px; border-radius: 12px; border-left: 6px solid var(--primary); margin-bottom: 15px; position: relative; }
-        .order-id { font-weight: 800; color: var(--primary); }
-        .order-details { margin: 10px 0; font-size: 14px; line-height: 1.6; }
-        .status-badge { background: #dbeafe; color: var(--primary); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .order-card { background: white; padding: 18px; border-left: 6px solid #2563eb; margin-bottom: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .red { background: #ef4444; width: auto; margin-top: 8px; padding: 6px 12px; font-size: 12px; }
+        .item-list { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2><i class="fa-solid fa-gears"></i> I N C I Admin</h2>
+<div class="container">
+    <h2>I N C I Admin Paneli</h2>
 
-        <div class="box">
-            <h3><i class="fa-solid fa-plus"></i> Yeni Məhsul Əlavə Et</h3>
-            <input id="pName" placeholder="Məhsulun adı">
-            <input id="pPrice" placeholder="Qiymət (məs: 45)" type="number">
-            <input id="pImg" placeholder="Şəkil linki (URL)">
-            <textarea id="pDesc" placeholder="Məhsul haqqında qısa məlumat" rows="3"></textarea>
-            <button onclick="addProduct()">Sistemə Əlavə Et</button>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h4>Toplam Sifariş</h4>
+            <div id="statCount">0</div>
         </div>
-
-        <div class="box">
-            <h3><i class="fa-solid fa-truck-loading"></i> Gələn Sifarişlər</h3>
-            <div id="adminOrders"></div>
+        <div class="stat-card" style="border-color: #10b981;">
+            <h4>Ümumi Qazanc</h4>
+            <div id="statSum">0 AZN</div>
         </div>
-
-        <div class="box">
-            <h3><i class="fa-solid fa-boxes-stacked"></i> Mövcud Məhsullar</h3>
-            <div id="adminProductList"></div>
+        <div class="stat-card" style="border-color: #f59e0b;">
+            <h4>Məhsul Sayı</h4>
+            <div id="statProd">0</div>
         </div>
     </div>
 
+    <div class="box">
+        <h3>Yeni Məhsul Əlavə Et</h3>
+        <input id="pName" placeholder="Məhsulun adı">
+        <input id="pPrice" placeholder="Qiyməti (AZN)">
+        <input id="pImg" placeholder="Şəkil URL (link)">
+        <textarea id="pDesc" placeholder="Məhsul haqqında qısa məlumat"></textarea>
+        <button onclick="addProduct()">Yadda saxla</button>
+    </div>
+
+    <div class="box">
+        <h3>Sifarişlərin İdarə Edilməsi</h3>
+        <div id="adminOrders"></div>
+    </div>
+
+    <div class="box">
+        <h3>Bazadakı Məhsullar</h3>
+        <div id="adminProductList"></div>
+    </div>
+</div>
+
 <script>
-    // Məhsul əlavə etmə
     function addProduct() {
         const name = document.getElementById("pName").value;
         const price = document.getElementById("pPrice").value;
         const img = document.getElementById("pImg").value;
         const desc = document.getElementById("pDesc").value;
-
         if(!name || !price) return alert("Ad və qiymət mütləqdir!");
 
         let products = JSON.parse(localStorage.getItem("products")) || [];
-        products.push({ 
-            id: Date.now(), 
-            name: name, 
-            price: price, 
-            img: img || 'https://via.placeholder.com/150',
-            desc: desc 
-        });
-        
+        products.push({ id: Date.now(), name, price, img, desc });
         localStorage.setItem("products", JSON.stringify(products));
-        alert("Məhsul bazaya əlavə edildi!");
         location.reload();
     }
 
-    // Məhsulları göstər
+    function renderStats() {
+        let orders = JSON.parse(localStorage.getItem("orders")) || [];
+        let prods = JSON.parse(localStorage.getItem("products")) || [];
+        let totalSum = orders.reduce((a, b) => a + parseFloat(b.total || 0), 0);
+        
+        document.getElementById("statCount").innerText = orders.length;
+        document.getElementById("statSum").innerText = totalSum.toFixed(2) + " AZN";
+        document.getElementById("statProd").innerText = prods.length;
+    }
+
     function renderAdminProducts() {
         let products = JSON.parse(localStorage.getItem("products")) || [];
         document.getElementById("adminProductList").innerHTML = products.map(p => `
             <div class="item-list">
-                <div class="item-info">
-                    <img src="${p.img}">
-                    <div>
-                        <b>${p.name}</b><br>
-                        <small>${p.price} AZN</small>
-                    </div>
-                </div>
-                <button class="red-btn" onclick="deleteProduct(${p.id})">Sil</button>
-            </div>
-        `).join('');
+                <span><b>${p.name}</b> - ${p.price} AZN</span>
+                <button class="red" onclick="deleteProduct(${p.id})">Sil</button>
+            </div>`).join('');
     }
 
     function deleteProduct(id) {
-        if(confirm("Bu məhsulu silməyə əminsiniz?")) {
+        if(confirm("Bu məhsulu silmək istəyirsiz?")) {
             let products = JSON.parse(localStorage.getItem("products")) || [];
             products = products.filter(p => p.id != id);
             localStorage.setItem("products", JSON.stringify(products));
-            renderAdminProducts();
+            location.reload();
         }
     }
 
-    // Sifarişləri göstər
     function renderOrders() {
         let orders = JSON.parse(localStorage.getItem("orders")) || [];
         const container = document.getElementById("adminOrders");
-
-        if(orders.length === 0) {
-            container.innerHTML = "<p style='text-align:center; color:#94a3b8;'>Hələ sifariş yoxdur.</p>";
-            return;
-        }
+        if(orders.length === 0) { container.innerHTML = "Sifariş yoxdur."; return; }
 
         container.innerHTML = orders.reverse().map(o => `
             <div class="order-card">
-                <div class="order-id">Sifariş #${o.id}</div>
-                <div class="order-details">
-                    <i class="fa-solid fa-user"></i> <b>${o.customer}</b><br>
-                    <i class="fa-solid fa-phone"></i> ${o.phone || 'Qeyd edilməyib'}<br>
-                    <i class="fa-solid fa-money-bill"></i> Cəmi: ${o.total || o.items?.reduce((a,b)=>a+Number(b.price),0)+' AZN'}<br>
-                    <span class="status-badge">${o.status}</span>
+                <div style="display:flex; justify-content:space-between;">
+                    <b>Sifariş #${o.id}</b> 
+                    <span style="color:#10b981; font-weight:bold;">${o.total}</span>
                 </div>
-                <select onchange="updateStatus(${o.id}, this.value)">
+                <div style="font-size:14px; margin-top:10px;">
+                    👤 <b>${o.customer}</b> (${o.phone})<br>
+                    📍 Ünvan: ${o.address}<br>
+                    📦 Məhsullar: ${o.items ? o.items.join(", ") : 'Məlumat yoxdur'}<br>
+                    🕒 Status: <span style="color:#2563eb; font-weight:bold;">${o.status}</span>
+                </div>
+                <select style="margin-top:10px;" onchange="updateStatus(${o.id}, this.value)">
                     <option value="">Statusu Dəyiş</option>
                     <option value="Sifariş verildi">Sifariş verildi</option>
                     <option value="Hazırlanır">Hazırlanır</option>
                     <option value="Kuryerə verildi">Kuryerə verildi</option>
                     <option value="Təhvil verildi">Təhvil verildi</option>
                 </select>
-                <div style="text-align:right; margin-top:10px;">
-                    <button class="red-btn" onclick="deleteOrder(${o.id})">Sifarişi Arxivlə/Sil</button>
-                </div>
-            </div>
-        `).join('');
+                <button class="red" onclick="deleteOrder(${o.id})">Sifarişi Sil</button>
+            </div>`).join('');
+        renderStats();
     }
 
     function updateStatus(id, stat) {
@@ -162,7 +152,6 @@
         }
     }
 
-    // Səhifə açılanda işə düş
     renderAdminProducts();
     renderOrders();
 </script>
