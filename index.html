@@ -2,61 +2,52 @@
 <html lang="az">
 <head>
     <meta charset="UTF-8">
-    <title>I N C I | Admin Paneli</title>
+    <title>I N C I | Admin Panel</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; padding: 20px; color: #1e293b; }
-        .container { max-width: 800px; margin: auto; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 25px; }
-        .stat-card { background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-bottom: 4px solid #2563eb; }
-        .stat-card div { font-size: 22px; font-weight: bold; color: #2563eb; margin-top: 8px; }
-        .box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        input, textarea, select { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { background: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; }
-        .order-card { background: white; padding: 18px; border-left: 6px solid #2563eb; margin-bottom: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .item-list { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
-        .red { background: #ef4444; color: white; padding: 6px 12px; border-radius: 5px; border: none; cursor: pointer; }
-        .time-tag { color: #64748b; font-size: 12px; display: block; margin-top: 5px; font-weight: bold; }
-        .badge-info { background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 5px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; color: #1c1e21; }
+        .box { background: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h3 { margin-top: 0; color: #2563eb; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0 18px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
+        button { background: #2563eb; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; }
+        button:hover { background: #1d4ed8; }
+        .order-card { border-left: 6px solid #2563eb; padding: 15px; margin-bottom: 15px; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .status-select { background: #f8fafc; border-color: #2563eb; font-weight: 600; width: auto; margin-right: 10px; }
+        .red-btn { background: #ef4444; width: auto; padding: 8px 15px; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h2>I N C I Admin Paneli</h2>
-    
-    <div class="stats-grid">
-        <div class="stat-card"><h4>Sifariş</h4><div id="statCount">0</div></div>
-        <div class="stat-card" style="border-color: #10b981;"><h4>Qazanc</h4><div id="statSum">0 AZN</div></div>
-        <div class="stat-card" style="border-color: #f59e0b;"><h4>Məhsul</h4><div id="statProd">0</div></div>
-    </div>
 
     <div class="box">
         <h3>Yeni Məhsul Əlavə Et</h3>
         <input id="pName" placeholder="Məhsulun adı">
         <input id="pPrice" type="number" placeholder="Qiyməti (AZN)">
-        <input id="pImg" placeholder="Şəkil URL">
+        <input id="pImg" placeholder="Şəkil URL (ibb.co linki)">
         
+        <label>Kateqoriya:</label>
         <select id="pCategory">
-            <option value="Pasta">Pastalar</option>
-            <option value="Ayaqqabı">Ayaqqabılar</option>
-            <option value="Geyim">Geyimlər</option>
-            <option value="Digər">Digər</option>
+            <option value="Elektronika">Elektronika</option>
+            <option value="Şirniyyat">Şirniyyat</option>
+            <option value="Geyim">Geyim</option>
+            <option value="Ətirlər">Ətirlər</option>
+            <option value="Ayaqqabı">Ayaqqabı</option>
+            <option value="Şalvar">Şalvar</option>
+            <option value="Zinət əşyaları">Zinət əşyaları</option>
         </select>
 
+        <label>Etiket (Badge):</label>
         <select id="pTag">
-            <option value="">Etiket yoxdur</option>
+            <option value="">Yoxdur</option>
             <option value="Yeni">Yeni</option>
             <option value="Endirim">Endirim</option>
-            <option value="Bitib">Stokda yoxdur</option>
         </select>
-
-        <textarea id="pDesc" placeholder="Məlumat"></textarea>
-        <button id="addBtn">Yadda Saxla</button>
+        
+        <button onclick="addProduct()">Bazaya Göndər</button>
     </div>
 
-    <div class="box"><h3>Sifarişlər</h3><div id="adminOrders"></div></div>
-    <div class="box"><h3>Məhsullar</h3><div id="adminProductList"></div></div>
-</div>
+    <div class="box">
+        <h3>Gələn Sifarişlər</h3>
+        <div id="adminOrders">Yüklənir...</div>
+    </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -74,66 +65,49 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    document.getElementById("addBtn").onclick = function() {
+    function addProduct() {
         const name = document.getElementById("pName").value;
         const price = document.getElementById("pPrice").value;
         const img = document.getElementById("pImg").value;
         const cat = document.getElementById("pCategory").value;
         const tag = document.getElementById("pTag").value;
-        const desc = document.getElementById("pDesc").value;
+        
+        if(!name || !price) return alert("Ad və qiymət mütləqdir!");
 
-        if(!name || !price) return alert("Ad və qiymət yazın!");
-        db.ref('products').push({ name, price, img, category: cat, tag: tag, desc });
-        alert("Əlavə edildi!");
+        db.ref('products').push({ name, price, img, category: cat, tag });
+        alert("Məhsul " + cat + " bölməsinə əlavə edildi!");
         location.reload();
-    };
-
-    db.ref('products').on('value', snap => {
-        let products = snap.val();
-        let html = ""; let count = 0;
-        for(let id in products) {
-            count++;
-            let p = products[id];
-            html += `<div class="item-list">
-                <span><b>${p.name}</b> <small>${p.tag ? '['+p.tag+']' : ''}</small> - ${p.price} AZN</span>
-                <button class="red" onclick="deleteProduct('${id}')">Sil</button>
-            </div>`;
-        }
-        document.getElementById("adminProductList").innerHTML = html;
-        document.getElementById("statProd").innerText = count;
-    });
+    }
 
     db.ref('orders').on('value', snap => {
-        let orders = snap.val();
-        let html = ""; let total = 0; let count = 0;
-        for(let id in orders) {
-            count++;
-            let o = orders[id];
-            total += parseFloat(o.total || 0);
+        let html = "";
+        snap.forEach(child => {
+            let o = child.val();
             html += `<div class="order-card">
-                <div style="display:flex; justify-content:space-between;"><b>#${o.id}</b> <b>${o.total}</b></div>
-                <small>👤 ${o.customer} (${o.phone})</small><br>
-                <small>📍 ${o.address}</small><br>
-                <small>📦 ${o.items}</small><br>
-                <span class="time-tag">🕒 Tarix: ${o.time || 'Qeyd olunmayıb'}</span>
-                <div style="margin-top:10px;">
-                    <select onchange="updateStatus('${id}', this.value)" style="width:120px; padding:4px;">
-                        <option value="">Status</option>
-                        <option value="Hazırlanır">Hazırlanır</option>
-                        <option value="Təhvil verildi">Təhvil verildi</option>
-                    </select>
-                    <button class="red" onclick="deleteOrder('${id}')">Sil</button>
+                <div style="display:flex; justify-content:space-between;">
+                    <b>Sifariş #${o.id}</b>
+                    <span style="color:#2563eb;">${o.total}</span>
                 </div>
+                <div style="margin: 10px 0; font-size: 14px;">
+                    👤 ${o.customer} (${o.phone})<br>
+                    📍 ${o.address || 'Ünvan qeyd edilməyib'}<br>
+                    📦 ${o.items}
+                </div>
+                <select class="status-select" onchange="updateStatus('${child.key}', this.value)">
+                    <option ${o.status=='Sifariş verildi'?'selected':''}>Sifariş verildi</option>
+                    <option ${o.status=='Hazırlanır'?'selected':''}>Hazırlanır</option>
+                    <option ${o.status=='Paketləmə'?'selected':''}>Paketləmə</option>
+                    <option ${o.status=='Yola düşüb'?'selected':''}>Yola düşüb</option>
+                    <option ${o.status=='Təhvil verildi'?'selected':''}>Təhvil verildi</option>
+                </select>
+                <button class="red-btn" onclick="deleteOrder('${child.key}')">Sil</button>
             </div>`;
-        }
-        document.getElementById("adminOrders").innerHTML = html;
-        document.getElementById("statCount").innerText = count;
-        document.getElementById("statSum").innerText = total.toFixed(2) + " AZN";
+        });
+        document.getElementById("adminOrders").innerHTML = html || "Sifariş yoxdur.";
     });
 
-    window.deleteProduct = id => db.ref('products/' + id).remove();
-    window.deleteOrder = id => db.ref('orders/' + id).remove();
-    window.updateStatus = (id, st) => db.ref('orders/' + id).update({status: st});
+    window.updateStatus = (key, st) => db.ref('orders/'+key).update({status: st});
+    window.deleteOrder = key => confirm("Silmək istəyirsiniz?") && db.ref('orders/'+key).remove();
 </script>
 </body>
 </html>
