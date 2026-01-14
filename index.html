@@ -6,84 +6,81 @@
     <title>I N C I | Admin Kontrol</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --blue: #2563eb; --red: #ef4444; --green: #10b981; --dark: #1e293b; --gray: #f8fafc; }
-        body { font-family: 'Inter', sans-serif; background: var(--gray); margin: 0; padding: 20px; color: var(--dark); }
-        .wrapper { max-width: 900px; margin: auto; }
+        :root { --blue: #2563eb; --red: #ef4444; --green: #10b981; --amber: #f59e0b; --dark: #1e293b; --gray: #f8fafc; }
+        body { font-family: 'Inter', sans-serif; background: var(--gray); margin: 0; padding: 15px; color: var(--dark); }
+        .wrapper { max-width: 1000px; margin: auto; }
         
-        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
-        h2 { margin: 0; color: var(--blue); letter-spacing: 1px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; }
+        @media (max-width: 850px) { .grid { grid-template-columns: 1fr; } }
 
-        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 768px) { .grid-layout { grid-template-columns: 1fr; } }
+        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h3 { margin-top: 0; font-size: 18px; display: flex; align-items: center; gap: 10px; color: var(--dark); }
 
-        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #edf2f7; }
-        .card h3 { margin-top: 0; font-size: 18px; border-bottom: 1px solid #edf2f7; padding-bottom: 10px; margin-bottom: 20px; }
-
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.3s; }
-        input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; transition: 0.3s; box-sizing: border-box; }
+        input:focus { border-color: var(--blue); }
         
-        .btn { background: var(--blue); color: white; border: none; padding: 14px; border-radius: 12px; cursor: pointer; font-weight: 600; width: 100%; transition: 0.3s; }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
-        
-        /* Sifariş Kartları */
-        .order-box { background: white; border-radius: 18px; padding: 20px; margin-bottom: 20px; border: 1px solid #edf2f7; transition: 0.3s; }
-        .order-box:hover { border-color: var(--blue); }
-        .order-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
-        .order-id { font-weight: 800; color: var(--blue); }
-        .order-total { font-weight: 700; color: var(--green); }
-
-        .customer-info { background: var(--gray); padding: 15px; border-radius: 12px; margin-bottom: 15px; font-size: 14px; }
-        .customer-info p { margin: 5px 0; }
-
-        /* Şəkillər bölməsi */
-        .order-images { display: flex; gap: 10px; margin: 15px 0; overflow-x: auto; padding-bottom: 8px; }
-        .order-images img { width: 65px; height: 65px; border-radius: 12px; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-
-        .status-container { display: flex; align-items: center; gap: 10px; margin-top: 15px; }
-        .status-select { flex: 1; margin: 0; padding: 10px; font-weight: 600; border-color: var(--blue); }
-        
-        .btn-delete { background: #fee2e2; color: var(--red); width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; transition: 0.3s; }
-        .btn-delete:hover { background: var(--red); color: white; }
+        .btn { background: var(--blue); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 600; width: 100%; transition: 0.2s; }
+        .btn:active { transform: scale(0.98); }
 
         /* Məhsul siyahısı */
-        .prod-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9; }
-        .prod-item img { width: 50px; height: 50px; border-radius: 10px; object-fit: cover; }
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f1f5f9; }
+        .item img { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; }
+        .stock-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+
+        /* Sifariş qutusu */
+        .order-box { border: 1px solid #e2e8f0; border-radius: 15px; padding: 15px; margin-bottom: 15px; position: relative; background: white; }
+        .order-header { display: flex; justify-content: space-between; font-weight: 800; margin-bottom: 5px; color: var(--blue); }
+        
+        /* TARİX VƏ SAAT BLOKU */
+        .order-time-stamp { background: #e0f2fe; padding: 6px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 12px; font-weight: bold; color: #0369a1; display: inline-block; }
+
+        .cust-info { font-size: 13px; background: #f1f5f9; padding: 10px; border-radius: 10px; margin: 10px 0; }
+        .order-imgs { display: flex; gap: 8px; overflow-x: auto; padding: 5px 0; scrollbar-width: none; }
+        .order-imgs img { width: 60px; height: 60px; border-radius: 10px; border: 1px solid #ddd; flex-shrink: 0; }
+
+        .del-btn { background: #fee2e2; color: var(--red); border: none; padding: 10px; border-radius: 10px; cursor: pointer; transition: 0.3s; }
+        .del-btn:hover { background: var(--red); color: white; }
     </style>
 </head>
 <body>
 
 <div class="wrapper">
-    <div class="header-top">
-        <h2><i class="fas fa-shield-halved"></i> INCI ADMIN</h2>
-        <div id="stats" style="font-size: 14px; font-weight: 600; color: #64748b;">Gözləyən sifariş: <span id="count" style="color: var(--blue);">0</span></div>
+    <div class="header">
+        <h2><i class="fas fa-user-gear"></i> INCI Admin</h2>
+        <div style="text-align: right;">
+            <small style="color: #64748b;">Toplam Sifariş</small>
+            <div id="orderCount" style="font-size: 20px; font-weight: 900; color: var(--blue);">0</div>
+        </div>
     </div>
 
-    <div class="grid-layout">
-        <div>
+    <div class="grid">
+        <div class="side">
             <div class="card">
-                <h3><i class="fas fa-plus"></i> Məhsul Əlavə Et</h3>
-                <input id="pName" placeholder="Məhsulun adı">
-                <input id="pPrice" type="number" placeholder="Qiyməti (AZN)">
+                <h3><i class="fas fa-plus-circle"></i> Yeni Məhsul</h3>
+                <input id="pName" placeholder="Məhsul adı">
+                <input id="pPrice" type="number" placeholder="Qiymət (AZN)">
                 <input id="pImg" placeholder="Şəkil URL (Keçid)">
-                <select id="pCategory">
-                    <option value="Pastalar">Pastalar</option>
-                    <option value="Ayaqqabılar">Ayaqqabılar</option>
+                <input id="pDays" type="number" placeholder="Çatdırılma günü (məs: 3)">
+                <select id="pCat">
+                    <option value="Geyim">Geyim</option>
+                    <option value="Aksesuar">Aksesuar</option>
                     <option value="Elektronika">Elektronika</option>
-                    <option value="Ətirlər">Ətirlər</option>
+                    <option value="Pastalar">Pastalar</option>
                 </select>
                 <button class="btn" onclick="addProduct()">Siyahıya Əlavə Et</button>
             </div>
 
             <div class="card">
-                <h3><i class="fas fa-boxes-stacked"></i> Aktiv Məhsullar</h3>
+                <h3><i class="fas fa-box"></i> Stok İdarəsi</h3>
                 <div id="productList">Yüklənir...</div>
             </div>
         </div>
 
-        <div>
+        <div class="side">
             <div class="card">
-                <h3><i class="fas fa-truck-ramp-box"></i> Canlı Sifarişlər</h3>
-                <div id="orderList">Yüklənir...</div>
+                <h3><i class="fas fa-bell"></i> Canlı Sifarişlər</h3>
+                <div id="orderList">Sifariş gözlənilir...</div>
             </div>
         </div>
     </div>
@@ -101,79 +98,95 @@
         const name = document.getElementById("pName").value;
         const price = document.getElementById("pPrice").value;
         const img = document.getElementById("pImg").value;
-        const category = document.getElementById("pCategory").value;
+        const days = document.getElementById("pDays").value;
+        const category = document.getElementById("pCat").value;
 
-        if(!name || !price || !img) return alert("Bütün boşluqları doldurun!");
+        if(!name || !price || !img || !days) return alert("Boşluqları doldurun!");
 
-        db.ref('products').push({ name, price: parseFloat(price), img, category }).then(() => {
-            alert("Məhsul bazaya düşdü!");
-            ["pName", "pPrice", "pImg"].forEach(id => document.getElementById(id).value = "");
+        db.ref('products').push({
+            name, price: parseFloat(price), img,
+            deliveryDays: days,
+            category,
+            inStock: true
+        }).then(() => {
+            alert("Məhsul əlavə edildi!");
+            ["pName", "pPrice", "pImg", "pDays"].forEach(id => document.getElementById(id).value = "");
         });
     }
 
-    // MƏHSUL SİYAHISINI GÖSTƏR
+    // MƏHSUL SİYAHISI (Stokla birgə)
     db.ref('products').on('value', snap => {
         let html = "";
-        snap.forEach(child => {
-            let p = child.val();
-            html += `<div class="prod-item">
-                <div style="display:flex; align-items:center; gap:12px;"><img src="${p.img}"><div><b>${p.name}</b><br><small>${p.price} AZN</small></div></div>
-                <button class="btn-delete" onclick="db.ref('products/${child.key}').remove()"><i class="fas fa-trash"></i></button>
+        snap.forEach(c => {
+            let p = c.val();
+            let isOut = p.inStock === false;
+            html += `<div class="item" style="opacity: ${isOut ? '0.5' : '1'}">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <img src="${p.img}">
+                    <div>
+                        <div style="font-size:13px; font-weight:700;">${p.name}</div>
+                        <span class="stock-tag" style="background:${isOut?'#fee2e2':'#dcfce7'}; color:${isOut?'#ef4444':'#10b981'};">
+                            ${isOut ? 'Tükənib' : 'Stokda'}
+                        </span>
+                    </div>
+                </div>
+                <div style="display:flex; gap:5px;">
+                    <button class="btn" style="background:var(--amber); width:auto; padding:5px 10px;" onclick="toggleStock('${c.key}', ${isOut})">
+                        <i class="fas fa-sync"></i>
+                    </button>
+                    <button class="del-btn" onclick="db.ref('products/${c.key}').remove()"><i class="fas fa-trash"></i></button>
+                </div>
             </div>`;
         });
-        document.getElementById("productList").innerHTML = html || "Məhsul tapılmadı.";
+        document.getElementById("productList").innerHTML = html;
     });
 
-    // SİFARİŞLƏRİ İDARƏ ET
+    function toggleStock(id, currentStatus) {
+        db.ref('products/' + id).update({ inStock: currentStatus });
+    }
+
+    // SİFARİŞ SİYAHISI (Saat və Gün ilə)
     db.ref('orders').on('value', snap => {
         let html = "";
         let count = 0;
-        snap.forEach(child => {
-            let o = child.val();
+        snap.forEach(c => {
+            let o = c.val();
             count++;
-            let imagesHtml = o.itemImages ? o.itemImages.map(img => `<img src="${img}">`).join('') : '';
+            let imgs = o.itemImages ? o.itemImages.map(img => `<img src="${img}">`).join('') : '';
             
             html = `
             <div class="order-box">
+                <div class="order-time-stamp">
+                    <i class="far fa-calendar-check"></i> ${o.orderDate || '---'} | 
+                    <i class="far fa-clock"></i> ${o.orderTime || '---'}
+                </div>
                 <div class="order-header">
-                    <span class="order-id">#${o.id}</span>
-                    <span class="order-total">${o.total}</span>
+                    <span>#${o.id}</span>
+                    <span>${o.total}</span>
                 </div>
-                <div class="customer-info">
-                    <p><i class="fas fa-user"></i> ${o.customer}</p>
-                    <p><i class="fas fa-phone"></i> ${o.phone}</p>
-                    <p><i class="fas fa-map-marker-alt"></i> ${o.address}</p>
-                    <p style="font-size:11px; color:#64748b; margin-top:10px;"><i class="fas fa-clock"></i> Sifariş vaxtı: ${o.orderTime}</p>
+                <div class="cust-info">
+                    <b><i class="fas fa-user"></i> ${o.customer}</b><br>
+                    <i class="fas fa-phone"></i> ${o.phone}<br>
+                    <i class="fas fa-map-marker-alt"></i> ${o.address}
                 </div>
-                
-                <div style="font-size:12px; font-weight:bold; color:#64748b;">Məhsullar:</div>
-                <div class="order-images">
-                    ${imagesHtml}
-                </div>
-
-                <div class="status-container">
-                    <select class="status-select" onchange="updateStatus('${child.key}', this.value)">
-                        <option value="Sifariş verildi" ${o.status=='Sifariş verildi'?'selected':''}>Sifariş verildi</option>
-                        <option value="Hazırlanır" ${o.status=='Hazırlanır'?'selected':''}>Hazırlanır</option>
-                        <option value="Paketləmə" ${o.status=='Paketləmə'?'selected':''}>Paketləmə</option>
-                        <option value="Yola düşüb" ${o.status=='Yola düşüb'?'selected':''}>Yola düşüb</option>
-                        <option value="Təhvil verildi" ${o.status=='Təhvil verildi'?'selected':''}>Təhvil verildi</option>
-                    </select>
-                    <button class="btn-delete" onclick="if(confirm('Sifarişi silmək istəyirsiniz?')) db.ref('orders/${child.key}').remove()">
-                        <i class="fas fa-trash-can"></i>
-                    </button>
-                </div>
-            </div>` + html; // Ən son gələn sifariş ən üstdə görünsün
+                <div class="order-imgs">${imgs}</div>
+                <div style="font-size:11px; margin-top:10px;">Hazırkı status: <b>${o.status}</b></div>
+                <select onchange="updateStatus('${c.key}', this.value)" style="background:#f8fafc; font-weight:bold;">
+                    <option value="Sifariş verildi" ${o.status=='Sifariş verildi'?'selected':''}>Sifariş verildi</option>
+                    <option value="Hazırlanır" ${o.status=='Hazırlanır'?'selected':''}>Hazırlanır</option>
+                    <option value="Paketləmə" ${o.status=='Paketləmə'?'selected':''}>Paketləmə</option>
+                    <option value="Yola düşüb" ${o.status=='Yola düşüb'?'selected':''}>Yola düşüb</option>
+                    <option value="Təhvil verildi" ${o.status=='Təhvil verildi'?'selected':''}>Təhvil verildi</option>
+                </select>
+                <button class="del-btn" style="width:100%; margin-top:10px;" onclick="if(confirm('Silinsin?')) db.ref('orders/${c.key}').remove()">Sifarişi Tamamilə Sil</button>
+            </div>` + html;
         });
         document.getElementById("orderList").innerHTML = html || "Yeni sifariş yoxdur.";
-        document.getElementById("count").innerText = count;
+        document.getElementById("orderCount").innerText = count;
     });
 
-    // STATUSU YENİLƏ
-    function updateStatus(key, st) {
-        db.ref('orders/' + key).update({ status: st }).then(() => {
-            console.log("Sifariş #" + key + " statusu '" + st + "' olaraq dəyişdirildi.");
-        });
+    function updateStatus(key, status) {
+        db.ref('orders/' + key).update({ status: status });
     }
 </script>
 </body>
