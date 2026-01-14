@@ -14,19 +14,17 @@
         input, textarea, select { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         button { background: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s; }
         button:hover { background: #1d4ed8; }
-        .order-card { background: white; padding: 18px; border-left: 6px solid #2563eb; margin-bottom: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .red { background: #ef4444; width: auto; margin-top: 8px; padding: 6px 12px; font-size: 12px; }
         .item-list { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
+        .red { background: #ef4444; width: auto; margin-top: 8px; padding: 6px 12px; font-size: 12px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>I N C I Admin Paneli</h2>
-
     <div class="stats-grid">
         <div class="stat-card"><h4>Toplam Sifariş</h4><div id="statCount">0</div></div>
-        <div class="stat-card" style="border-color: #10b981;"><h4>Ümumi Qazanc</h4><div id="statSum">0 AZN</div></div>
+        <div class="stat-card" style="border-color: #10b981;"><h4>Ümumi Qazanc</h4><div id="statSum">0.00 AZN</div></div>
         <div class="stat-card" style="border-color: #f59e0b;"><h4>Məhsul Sayı</h4><div id="statProd">0</div></div>
     </div>
 
@@ -36,16 +34,15 @@
         <input id="pPrice" placeholder="Qiyməti (AZN)">
         <input id="pImg" placeholder="Şəkil URL (link)">
         <textarea id="pDesc" placeholder="Məhsul haqqında qısa məlumat"></textarea>
-        <button onclick="addProduct()">Yadda saxla</button>
+        <button id="addBtn">Yadda saxla</button>
     </div>
 
-    <div class="box"><h3>Sifarişlərin İdarə Edilməsi</h3><div id="adminOrders"></div></div>
     <div class="box"><h3>Bazadakı Məhsullar</h3><div id="adminProductList"></div></div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, remove, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw",
@@ -60,89 +57,50 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Məhsul əlavə etmək
-    window.addProduct = function() {
+    // Məhsul Əlavə Etmə Funksiyası
+    document.getElementById("addBtn").onclick = function() {
         const name = document.getElementById("pName").value;
         const price = document.getElementById("pPrice").value;
         const img = document.getElementById("pImg").value;
         const desc = document.getElementById("pDesc").value;
+
         if(!name || !price) return alert("Ad və qiymət mütləqdir!");
 
         const id = Date.now();
-        set(ref(db, 'products/' + id), { id, name, price, img, desc }).then(() => {
-            alert("Məhsul bazaya əlavə edildi!");
-            document.querySelectorAll('input, textarea').forEach(i => i.value = "");
-        });
+        set(ref(db, 'products/' + id), {
+            id: id,
+            name: name,
+            price: price,
+            img: img,
+            desc: desc
+        }).then(() => {
+            alert("Məhsul paylaşıldı!");
+            document.querySelectorAll('input, textarea').forEach(el => el.value = "");
+        }).catch(err => alert("Xəta: " + err.message));
     };
 
-    // Məhsulları və Sifarişləri Dinləmək (Real-time)
+    // Məhsulları və Statistikaları Yeniləmə
     onValue(ref(db, '/'), (snapshot) => {
         const data = snapshot.val() || {};
         const products = data.products ? Object.values(data.products) : [];
         const orders = data.orders ? Object.values(data.orders) : [];
         
-        renderAdminProducts(products);
-        renderOrders(orders);
-        renderStats(products, orders);
-    });
-
-    function renderStats(prods, orders) {
-        let totalSum = orders.reduce((a, b) => a + parseFloat(b.total || 0), 0);
-        document.getElementById("statCount").innerText = orders.length;
-        document.getElementById("statSum").innerText = totalSum.toFixed(2) + " AZN";
-        document.getElementById("statProd").innerText = prods.length;
-    }
-
-    function renderAdminProducts(products) {
+        // Məhsul siyahısını göstər
         document.getElementById("adminProductList").innerHTML = products.map(p => `
             <div class="item-list">
                 <span><b>${p.name}</b> - ${p.price} AZN</span>
-                <button class="red" onclick="deleteProduct(${p.id})">Sil</button>
+                <button class="red" onclick="window.delProd(${p.id})">Sil</button>
             </div>`).join('');
-    }
 
-    window.deleteProduct = function(id) {
-        if(confirm("Bu məhsulu silmək istəyirsiz?")) {
-            remove(ref(db, 'products/' + id));
-        }
-    };
+        // Statistikaları yenilə
+        let totalSum = orders.reduce((a, b) => a + parseFloat(b.total || 0), 0);
+        document.getElementById("statCount").innerText = orders.length;
+        document.getElementById("statSum").innerText = totalSum.toFixed(2) + " AZN";
+        document.getElementById("statProd").innerText = products.length;
+    });
 
-    function renderOrders(orders) {
-        const container = document.getElementById("adminOrders");
-        if(orders.length === 0) { container.innerHTML = "Sifariş yoxdur."; return; }
-
-        container.innerHTML = orders.reverse().map(o => `
-            <div class="order-card">
-                <div style="display:flex; justify-content:space-between;">
-                    <b>Sifariş #${o.id}</b> 
-                    <span style="color:#10b981; font-weight:bold;">${o.total}</span>
-                </div>
-                <div style="font-size:14px; margin-top:10px;">
-                    👤 <b>${o.customer}</b> (${o.phone})<br>
-                    📍 Ünvan: ${o.address}<br>
-                    📦 Məhsullar: ${o.items ? (Array.isArray(o.items) ? o.items.join(", ") : o.items) : 'Məlumat yoxdur'}<br>
-                    🕒 Status: <span style="color:#2563eb; font-weight:bold;">${o.status}</span>
-                </div>
-                <select style="margin-top:10px;" onchange="updateStatus(${o.id}, this.value)">
-                    <option value="">Statusu Dəyiş</option>
-                    <option value="Sifariş verildi">Sifariş verildi</option>
-                    <option value="Hazırlanır">Hazırlanır</option>
-                    <option value="Kuryerə verildi">Kuryerə verildi</option>
-                    <option value="Təhvil verildi">Təhvil verildi</option>
-                </select>
-                <button class="red" onclick="deleteOrder(${o.id})">Sifarişi Sil</button>
-            </div>`).join('');
-    }
-
-    window.updateStatus = function(id, stat) {
-        if(!stat) return;
-        update(ref(db, 'orders/' + id), { status: stat });
-    };
-
-    window.deleteOrder = function(id) {
-        if(confirm("Sifarişi silmək istəyirsiz?")) {
-            remove(ref(db, 'orders/' + id));
-        }
+    window.delProd = (id) => {
+        if(confirm("Silmək istəyirsiz?")) remove(ref(db, 'products/' + id));
     };
 </script>
 </body>
