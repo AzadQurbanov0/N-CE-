@@ -10,12 +10,10 @@
         .stat-card { background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-bottom: 4px solid #2563eb; }
         .stat-card h4 { margin: 0; color: #64748b; font-size: 13px; text-transform: uppercase; }
         .stat-card div { font-size: 22px; font-weight: bold; color: #2563eb; margin-top: 8px; }
-        
         .box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         input, textarea, select { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         button { background: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s; }
         button:hover { background: #1d4ed8; }
-        
         .order-card { background: white; padding: 18px; border-left: 6px solid #2563eb; margin-bottom: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
         .red { background: #ef4444; width: auto; margin-top: 8px; padding: 6px 12px; font-size: 12px; }
         .item-list { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
@@ -27,18 +25,9 @@
     <h2>I N C I Admin Paneli</h2>
 
     <div class="stats-grid">
-        <div class="stat-card">
-            <h4>Toplam Sifariş</h4>
-            <div id="statCount">0</div>
-        </div>
-        <div class="stat-card" style="border-color: #10b981;">
-            <h4>Ümumi Qazanc</h4>
-            <div id="statSum">0 AZN</div>
-        </div>
-        <div class="stat-card" style="border-color: #f59e0b;">
-            <h4>Məhsul Sayı</h4>
-            <div id="statProd">0</div>
-        </div>
+        <div class="stat-card"><h4>Toplam Sifariş</h4><div id="statCount">0</div></div>
+        <div class="stat-card" style="border-color: #10b981;"><h4>Ümumi Qazanc</h4><div id="statSum">0 AZN</div></div>
+        <div class="stat-card" style="border-color: #f59e0b;"><h4>Məhsul Sayı</h4><div id="statProd">0</div></div>
     </div>
 
     <div class="box">
@@ -50,43 +39,61 @@
         <button onclick="addProduct()">Yadda saxla</button>
     </div>
 
-    <div class="box">
-        <h3>Sifarişlərin İdarə Edilməsi</h3>
-        <div id="adminOrders"></div>
-    </div>
-
-    <div class="box">
-        <h3>Bazadakı Məhsullar</h3>
-        <div id="adminProductList"></div>
-    </div>
+    <div class="box"><h3>Sifarişlərin İdarə Edilməsi</h3><div id="adminOrders"></div></div>
+    <div class="box"><h3>Bazadakı Məhsullar</h3><div id="adminProductList"></div></div>
 </div>
 
-<script>
-    function addProduct() {
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, remove, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyC4sGTK_P4KperVswrxxmt69H5cocsgnNw",
+        authDomain: "niceuc-e5986.firebaseapp.com",
+        databaseURL: "https://niceuc-e5986-default-rtdb.firebaseio.com",
+        projectId: "niceuc-e5986",
+        storageBucket: "niceuc-e5986.firebasestorage.app",
+        messagingSenderId: "242221260650",
+        appId: "1:242221260650:web:34abd91f7f0ef95e8dcf13"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Məhsul əlavə etmək
+    window.addProduct = function() {
         const name = document.getElementById("pName").value;
         const price = document.getElementById("pPrice").value;
         const img = document.getElementById("pImg").value;
         const desc = document.getElementById("pDesc").value;
         if(!name || !price) return alert("Ad və qiymət mütləqdir!");
 
-        let products = JSON.parse(localStorage.getItem("products")) || [];
-        products.push({ id: Date.now(), name, price, img, desc });
-        localStorage.setItem("products", JSON.stringify(products));
-        location.reload();
-    }
+        const id = Date.now();
+        set(ref(db, 'products/' + id), { id, name, price, img, desc }).then(() => {
+            alert("Məhsul bazaya əlavə edildi!");
+            document.querySelectorAll('input, textarea').forEach(i => i.value = "");
+        });
+    };
 
-    function renderStats() {
-        let orders = JSON.parse(localStorage.getItem("orders")) || [];
-        let prods = JSON.parse(localStorage.getItem("products")) || [];
-        let totalSum = orders.reduce((a, b) => a + parseFloat(b.total || 0), 0);
+    // Məhsulları və Sifarişləri Dinləmək (Real-time)
+    onValue(ref(db, '/'), (snapshot) => {
+        const data = snapshot.val() || {};
+        const products = data.products ? Object.values(data.products) : [];
+        const orders = data.orders ? Object.values(data.orders) : [];
         
+        renderAdminProducts(products);
+        renderOrders(orders);
+        renderStats(products, orders);
+    });
+
+    function renderStats(prods, orders) {
+        let totalSum = orders.reduce((a, b) => a + parseFloat(b.total || 0), 0);
         document.getElementById("statCount").innerText = orders.length;
         document.getElementById("statSum").innerText = totalSum.toFixed(2) + " AZN";
         document.getElementById("statProd").innerText = prods.length;
     }
 
-    function renderAdminProducts() {
-        let products = JSON.parse(localStorage.getItem("products")) || [];
+    function renderAdminProducts(products) {
         document.getElementById("adminProductList").innerHTML = products.map(p => `
             <div class="item-list">
                 <span><b>${p.name}</b> - ${p.price} AZN</span>
@@ -94,17 +101,13 @@
             </div>`).join('');
     }
 
-    function deleteProduct(id) {
+    window.deleteProduct = function(id) {
         if(confirm("Bu məhsulu silmək istəyirsiz?")) {
-            let products = JSON.parse(localStorage.getItem("products")) || [];
-            products = products.filter(p => p.id != id);
-            localStorage.setItem("products", JSON.stringify(products));
-            location.reload();
+            remove(ref(db, 'products/' + id));
         }
-    }
+    };
 
-    function renderOrders() {
-        let orders = JSON.parse(localStorage.getItem("orders")) || [];
+    function renderOrders(orders) {
         const container = document.getElementById("adminOrders");
         if(orders.length === 0) { container.innerHTML = "Sifariş yoxdur."; return; }
 
@@ -117,7 +120,7 @@
                 <div style="font-size:14px; margin-top:10px;">
                     👤 <b>${o.customer}</b> (${o.phone})<br>
                     📍 Ünvan: ${o.address}<br>
-                    📦 Məhsullar: ${o.items ? o.items.join(", ") : 'Məlumat yoxdur'}<br>
+                    📦 Məhsullar: ${o.items ? (Array.isArray(o.items) ? o.items.join(", ") : o.items) : 'Məlumat yoxdur'}<br>
                     🕒 Status: <span style="color:#2563eb; font-weight:bold;">${o.status}</span>
                 </div>
                 <select style="margin-top:10px;" onchange="updateStatus(${o.id}, this.value)">
@@ -129,31 +132,18 @@
                 </select>
                 <button class="red" onclick="deleteOrder(${o.id})">Sifarişi Sil</button>
             </div>`).join('');
-        renderStats();
     }
 
-    function updateStatus(id, stat) {
+    window.updateStatus = function(id, stat) {
         if(!stat) return;
-        let orders = JSON.parse(localStorage.getItem("orders")) || [];
-        let idx = orders.findIndex(o => o.id == id);
-        if(idx !== -1) {
-            orders[idx].status = stat;
-            localStorage.setItem("orders", JSON.stringify(orders));
-            renderOrders();
-        }
-    }
+        update(ref(db, 'orders/' + id), { status: stat });
+    };
 
-    function deleteOrder(id) {
+    window.deleteOrder = function(id) {
         if(confirm("Sifarişi silmək istəyirsiz?")) {
-            let orders = JSON.parse(localStorage.getItem("orders")) || [];
-            orders = orders.filter(o => o.id != id);
-            localStorage.setItem("orders", JSON.stringify(orders));
-            renderOrders();
+            remove(ref(db, 'orders/' + id));
         }
-    }
-
-    renderAdminProducts();
-    renderOrders();
+    };
 </script>
 </body>
 </html>
